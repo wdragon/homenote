@@ -52,6 +52,10 @@ public class NoteShare extends ParseObject{
         put("noteUUID", uuid);
     }
 
+    public Todo getNote() { return (Todo)getParseObject("note"); }
+
+    public void setNote(Todo todo) { put("note", todo); }
+
     public static ParseQuery<NoteShare> getQuery() {
         return ParseQuery.getQuery(NoteShare.class);
     }

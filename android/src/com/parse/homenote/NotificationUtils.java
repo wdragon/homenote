@@ -16,11 +16,11 @@ public class NotificationUtils {
 
     public static final int NOTIF_TYPE_NOTE_SHARED = 1;
 
-    public static void notifyUserInvite(ParseUser user, String message, String noteUUID) throws JSONException {
+    public static void notifyUserInvite(ParseUser user, String message, String noteShareID) throws JSONException {
         JSONObject data = new JSONObject();
         data.put("alert", message);
         data.put("type", NOTIF_TYPE_NOTE_SHARED);
-        data.put("noteUUID", noteUUID);
+        data.put("noteShareID", noteShareID);
 
         notifyUser(user, data);
     }

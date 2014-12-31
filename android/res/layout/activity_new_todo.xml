@@ -23,13 +23,15 @@
         android:id="@+id/saveButton"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:text="@string/save" />
+        android:text="@string/save"
+        android:visibility="invisible" />
 
     <Button
         android:id="@+id/shareButton"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:text="@string/share" />
+        android:text="@string/share"
+        android:visibility="invisible" />
 
     <Button
         android:id="@+id/deleteButton"

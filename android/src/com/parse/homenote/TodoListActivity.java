@@ -64,6 +64,7 @@ public class TodoListActivity extends Activity {
 		ParseQueryAdapter.QueryFactory<Todo> factory = new ParseQueryAdapter.QueryFactory<Todo>() {
 			public ParseQuery<Todo> create() {
 				ParseQuery<Todo> queryLocal = Todo.getQuery();
+                queryLocal.whereEqualTo("authors", ParseUser.getCurrentUser());
                 queryLocal.orderByDescending("createdAt");
                 queryLocal.fromLocalDatastore();
                 return queryLocal;
@@ -212,6 +213,7 @@ public class TodoListActivity extends Activity {
 				ParseQuery<Todo> query = Todo.getQuery();
 				query.fromPin(TodoListApplication.TODO_GROUP_NAME);
 				query.whereEqualTo("isDraft", true);
+                query.whereEqualTo("authors", ParseUser.getCurrentUser());
 				query.findInBackground(new FindCallback<Todo>() {
 					public void done(List<Todo> todos, ParseException e) {
 						if (e == null) {
@@ -293,9 +295,11 @@ public class TodoListActivity extends Activity {
 
         ParseQuery<NoteShare> innerQuery = NoteShare.getQuery();
         innerQuery.whereEqualTo("to", ParseUser.getCurrentUser());
+        innerQuery.whereEqualTo("confirmed", true);
         ParseQuery<Todo> queryShared = Todo.getQuery();
         queryShared.orderByDescending("createdAt");
         queryShared.whereMatchesKeyInQuery("uuid", "noteUUID", innerQuery);
+        queryShared.whereEqualTo("authors", ParseUser.getCurrentUser());
         queryShared.findInBackground(new FindCallback<Todo>() {
             public void done(List<Todo> todos, ParseException e) {
                 if (e == null) {

@@ -27,9 +27,17 @@ public class NewTodoActivity extends Activity {
 	private Todo todo;
     private boolean isNew;
 	private String todoId = null;
-
+    private String noteShareID = null;
 
     protected void shareNote(final ParseUser from, final ParseUser to, final Todo todo) {
+
+        ArrayList<ParseUser> authors = todo.getAuthors();
+        if (authors.contains(to)) {
+            Toast.makeText(getApplicationContext(),
+                    to.getUsername() + " already has access to this note",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
 
         // set up the query on the NoteShare table
         ParseQuery<NoteShare> query = NoteShare.getQuery();
@@ -44,12 +52,13 @@ public class NewTodoActivity extends Activity {
                             "Already shared to : " + to.getUsername(),
                             Toast.LENGTH_LONG).show();
                 } else {
-                    NoteShare newNoteShare = new NoteShare();
+                    final NoteShare newNoteShare = new NoteShare();
                     int ts = (int) (System.currentTimeMillis() / 1000L);
                     newNoteShare.setTimestamp(ts);
                     newNoteShare.setFrom(from);
                     newNoteShare.setTo(to);
                     newNoteShare.setConfirmed(false);
+                    newNoteShare.setNote(todo);
                     newNoteShare.setNoteUUID(todo.getUuidString());
                     final ParseACL groupACL = new ParseACL();
                     groupACL.setReadAccess(from, true);
@@ -66,10 +75,10 @@ public class NewTodoActivity extends Activity {
                                         Toast.LENGTH_LONG).show();
                                 todo.setACL(groupACL);
                                 todo.setDraft(true);
-
+                                saveNote(false);
                                 String message = from.getUsername() + " shared a note: " + todo.getTitle();
                                 try {
-                                    NotificationUtils.notifyUserInvite(to, message, todo.getUuidString());
+                                    NotificationUtils.notifyUserInvite(to, message, newNoteShare.getObjectId());
                                 } catch (JSONException e1) {
                                     e1.printStackTrace();
                                 }
@@ -85,6 +94,45 @@ public class NewTodoActivity extends Activity {
         });
     }
 
+    private void updateTodo() {
+        if (todo.getTitle() != null) {
+            todoText.setText(todo.getTitle());
+        }
+        if (todo.getAuthors().contains(ParseUser.getCurrentUser())) {
+            deleteButton.setVisibility(View.VISIBLE);
+            saveButton.setVisibility(View.VISIBLE);
+            shareButton.setVisibility(View.VISIBLE);
+        } else {
+            deleteButton.setVisibility(View.INVISIBLE);
+            saveButton.setVisibility(View.INVISIBLE);
+            shareButton.setVisibility(View.INVISIBLE);
+        }
+    }
+
+    private void saveNote(final boolean finishView) {
+        todo.pinInBackground(TodoListApplication.TODO_GROUP_NAME,
+            new SaveCallback() {
+
+                @Override
+                public void done(ParseException e) {
+                    if (isFinishing()) {
+                        return;
+                    }
+                    if (e == null) {
+                        if (finishView) {
+                            setResult(Activity.RESULT_OK);
+                            finish();
+                        }
+                    } else {
+                        Toast.makeText(getApplicationContext(),
+                                "Error saving: " + e.getMessage(),
+                                Toast.LENGTH_LONG).show();
+                    }
+                }
+
+            });
+    }
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -94,6 +142,9 @@ public class NewTodoActivity extends Activity {
 		if (getIntent().hasExtra("ID")) {
 			todoId = getIntent().getExtras().getString("ID");
 		}
+        if (getIntent().hasExtra("noteShareID")) {
+            noteShareID = getIntent().getExtras().getString("noteShareID");
+        }
 
 		todoText = (EditText) findViewById(R.id.todo_text);
 		saveButton = (Button) findViewById(R.id.saveButton);
@@ -105,11 +156,7 @@ public class NewTodoActivity extends Activity {
             todoText = (EditText) findViewById(R.id.todo_text);
         }
 
-        if (todoId == null) {
-			todo = new Todo();
-			todo.setUuidString();
-            isNew = true;
-		} else {
+        if (todoId != null) {
 			ParseQuery<Todo> query = Todo.getQuery();
 			query.fromLocalDatastore();
 			query.whereEqualTo("uuid", todoId);
@@ -119,13 +166,68 @@ public class NewTodoActivity extends Activity {
 				public void done(Todo object, ParseException e) {
 					if (!isFinishing()) {
 						todo = object;
-						todoText.setText(todo.getTitle());
-						deleteButton.setVisibility(View.VISIBLE);
+                        updateTodo();
 					}
 				}
-
 			});
-		}
+		} else if (noteShareID != null) {
+            ParseQuery<NoteShare> query = NoteShare.getQuery();
+            query.include("note");
+            query.include("from");
+            try {
+                final NoteShare noteShare = query.get(noteShareID);
+                todo = noteShare.getNote();
+                updateTodo();
+                if (noteShare.getConfirmed() == false) {
+                    AlertDialog.Builder alert = new AlertDialog.Builder(this);
+                    alert.setMessage(noteShare.getFrom().getUsername() + " shared a note to you:");
+
+                    alert.setPositiveButton("Accept to Edit", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int whichButton) {
+                            noteShare.setConfirmed(true);
+                            noteShare.saveInBackground(new SaveCallback() {
+                                @Override
+                                public void done(ParseException e) {
+                                    if (e != null) {
+                                        Toast.makeText(getApplicationContext(),
+                                                "Unable to accept note from " + noteShare.getFrom().getUsername(),
+                                                Toast.LENGTH_LONG).show();
+                                    }
+                                }
+                            });
+                            ArrayList<ParseUser> authors = todo.getAuthors();
+                            if (!authors.contains(ParseUser.getCurrentUser())) {
+                                authors.add(ParseUser.getCurrentUser());
+                                todo.setAuthors(authors);
+                                todo.setDraft(true);
+                                saveNote(false);
+                                updateTodo();
+                            }
+                        }
+                    });
+
+                    alert.setNegativeButton("Ignore", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int whichButton) {
+                            // Canceled.
+                        }
+                    });
+
+                    alert.show();
+                }
+            } catch (ParseException e) {
+                e.printStackTrace();
+                // TODO SHOW ERROR message
+            }
+        } else {
+            todo = new Todo();
+            todo.setUuidString();
+            isNew = true;
+            todo.setCreator(ParseUser.getCurrentUser());
+            ArrayList<ParseUser> authors = new ArrayList<ParseUser>();
+            authors.add(ParseUser.getCurrentUser());
+            todo.setAuthors(authors);
+            updateTodo();
+        }
 
 		saveButton.setOnClickListener(new OnClickListener() {
 
@@ -134,33 +236,8 @@ public class NewTodoActivity extends Activity {
 
 				todo.setTitle(todoText.getText().toString());
 				todo.setDraft(true);
-                if (isNew) {
-                    todo.setCreator(ParseUser.getCurrentUser());
-                    ArrayList<ParseUser> authors = new ArrayList<ParseUser>();
-                    authors.add(ParseUser.getCurrentUser());
-                    todo.setAuthors(authors);
-                }
-				todo.pinInBackground(TodoListApplication.TODO_GROUP_NAME,
-						new SaveCallback() {
-
-							@Override
-							public void done(ParseException e) {
-								if (isFinishing()) {
-									return;
-								}
-								if (e == null) {
-									setResult(Activity.RESULT_OK);
-									finish();
-								} else {
-									Toast.makeText(getApplicationContext(),
-											"Error saving: " + e.getMessage(),
-											Toast.LENGTH_LONG).show();
-								}
-							}
-
-						});
+			    saveNote(true);
 			}
-
 		});
 
         shareButton.setOnClickListener(new OnClickListener() {

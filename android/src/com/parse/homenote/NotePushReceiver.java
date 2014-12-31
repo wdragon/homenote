@@ -25,24 +25,17 @@ public class NotePushReceiver extends ParsePushBroadcastReceiver {
             int type = data.getInt("type");
             switch (type) {
                 case NotificationUtils.NOTIF_TYPE_NOTE_SHARED:
-                    /*
-                    String noteUUID = data.getString("noteUUID");
+                    String noteShareID = data.getString("noteShareID");
                     Intent i;
-                    i = new Intent(this, NewTodoActivity.class);
-                    i.putExtra("ID", noteUUID);
-                    startActivityForResult(i, EDIT_ACTIVITY_CODE);
-                    */
+                    i = new Intent(context, NewTodoActivity.class);
+                    i.putExtra("noteShareID", noteShareID);
+                    i.putExtras(extras);
+                    i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(i);
                     break;
-
             }
         } catch (JSONException e) {
             e.printStackTrace();
         }
-
-        // create a new activity
-        //Intent i = new Intent(context, HomeActivity.class);
-        //i.putExtras(intent.getExtras());
-        //i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        //context.startActivity(i);
     }
 }

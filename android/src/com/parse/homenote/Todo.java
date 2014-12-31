@@ -53,4 +53,6 @@ public class Todo extends ParseObject {
 	}
 
     public void setAuthors(ArrayList<ParseUser> authors) { put("authors", authors); }
+
+    public ArrayList<ParseUser> getAuthors() { return (ArrayList<ParseUser>)get("authors"); }
 }
