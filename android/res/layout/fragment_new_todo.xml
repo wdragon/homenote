@@ -19,6 +19,13 @@
         android:paddingTop="30dp" >
     </EditText>
 
+    <ImageButton
+            android:id="@+id/photoButton"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_action_photo"
+            android:visibility="invisible" />
+
     <Button
         android:id="@+id/saveButton"
         android:layout_width="fill_parent"

@@ -111,7 +111,7 @@ public class TodoListActivity extends Activity {
 	}
 
 	private void openEditView(Todo todo) {
-		Intent i = new Intent(this, NewTodoActivity.class);
+		Intent i = new Intent(this, NewNoteActivity.class);
 		i.putExtra("ID", todo.getUuidString());
 		startActivityForResult(i, EDIT_ACTIVITY_CODE);
 	}
@@ -150,7 +150,7 @@ public class TodoListActivity extends Activity {
 			// Make sure there's a valid user, anonymous
 			// or regular
 			if (ParseUser.getCurrentUser() != null) {
-				startActivityForResult(new Intent(this, NewTodoActivity.class),
+				startActivityForResult(new Intent(this, NewNoteActivity.class),
 						EDIT_ACTIVITY_CODE);
 			}
 		}

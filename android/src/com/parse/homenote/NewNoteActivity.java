@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-public class NewTodoActivity extends Activity {
+public class NewNoteActivity extends Activity {
 
 	private Todo todo;
 
@@ -32,6 +32,10 @@ public class NewTodoActivity extends Activity {
 
     public Todo getNote() {
         return todo;
+    }
+
+    public void addPhotoFile(ParseFile photo) {
+
     }
 
 	@Override

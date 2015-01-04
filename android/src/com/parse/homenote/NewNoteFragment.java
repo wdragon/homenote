@@ -3,13 +3,17 @@ package com.parse.homenote;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Fragment;
+import android.app.FragmentTransaction;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.Toast;
 import com.parse.*;
 import org.json.JSONException;
@@ -21,10 +25,11 @@ import java.util.ArrayList;
  */
 public class NewNoteFragment extends Fragment {
 
+    private ImageButton photoButton;
     private Button saveButton;
     private Button shareButton;
     private Button deleteButton;
-    private EditText todoText;
+    private EditText noteText;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -35,7 +40,7 @@ public class NewNoteFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup parent,
                              Bundle SavedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_new_todo, parent, false);
-        final NewTodoActivity activity = (NewTodoActivity)getActivity();
+        final NewNoteActivity activity = (NewNoteActivity)getActivity();
 
         // Fetch the todoId from the Extra data
         String todoId = null;
@@ -45,7 +50,8 @@ public class NewNoteFragment extends Fragment {
             noteShareId = getArguments().getString("noteShareId");
         }
 
-        todoText = (EditText) v.findViewById(R.id.todo_text);
+        noteText = (EditText) v.findViewById(R.id.todo_text);
+        photoButton = (ImageButton) v.findViewById(R.id.photoButton);
         saveButton = (Button) v.findViewById(R.id.saveButton);
         shareButton = (Button) v.findViewById(R.id.shareButton);
         deleteButton = (Button) v.findViewById(R.id.deleteButton);
@@ -84,7 +90,7 @@ public class NewNoteFragment extends Fragment {
                                 @Override
                                 public void done(ParseException e) {
                                     if (e != null) {
-                                        Toast.makeText(activity.getApplicationContext(),
+                                        Toast.makeText(activity,
                                                 "Unable to accept note from " + noteShare.getFrom().getUsername(),
                                                 Toast.LENGTH_LONG).show();
                                     }
@@ -124,12 +130,23 @@ public class NewNoteFragment extends Fragment {
             updateNote();
         }
 
+        photoButton.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                InputMethodManager imm = (InputMethodManager) getActivity()
+                        .getSystemService(Context.INPUT_METHOD_SERVICE);
+                imm.hideSoftInputFromWindow(noteText.getWindowToken(), 0);
+                startCamera();
+            }
+        });
+
         saveButton.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View v) {
 
-                activity.getNote().setTitle(todoText.getText().toString());
+                activity.getNote().setTitle(noteText.getText().toString());
                 activity.getNote().setDraft(true);
                 saveNote(true);
             }
@@ -156,7 +173,7 @@ public class NewNoteFragment extends Fragment {
                                     // The query was successful.
                                     shareNote(ParseUser.getCurrentUser(), user);
                                 } else {
-                                    Toast.makeText(getActivity().getApplicationContext(),
+                                    Toast.makeText(getActivity(),
                                             "Error sharing: " + e.getMessage(),
                                             Toast.LENGTH_LONG).show();
                                 }
@@ -192,12 +209,21 @@ public class NewNoteFragment extends Fragment {
         return v;
     }
 
+    public void startCamera() {
+        Fragment cameraFragment = new CameraFragment();
+        FragmentTransaction transaction = getActivity().getFragmentManager()
+                .beginTransaction();
+        transaction.replace(R.id.fragmentContainer, cameraFragment);
+        transaction.addToBackStack("NewNoteFragment");
+        transaction.commit();
+    }
+
     protected void shareNote(final ParseUser from, final ParseUser to) {
 
-        final Todo todo = ((NewTodoActivity)getActivity()).getNote();
+        final Todo todo = ((NewNoteActivity)getActivity()).getNote();
         ArrayList<ParseUser> authors = todo.getAuthors();
         if (authors.contains(to)) {
-            Toast.makeText(getActivity().getApplicationContext(),
+            Toast.makeText(getActivity(),
                     to.getUsername() + " already has access to this note",
                     Toast.LENGTH_LONG).show();
             return;
@@ -212,7 +238,7 @@ public class NewNoteFragment extends Fragment {
         query.getFirstInBackground(new GetCallback<NoteShare>() {
             public void done(NoteShare noteShare, ParseException e) {
                 if (e == null) {
-                    Toast.makeText(getActivity().getApplicationContext(),
+                    Toast.makeText(getActivity(),
                             "Already shared to : " + to.getUsername(),
                             Toast.LENGTH_LONG).show();
                 } else {
@@ -234,7 +260,7 @@ public class NewNoteFragment extends Fragment {
                         @Override
                         public void done(ParseException e) {
                             if (e == null) {
-                                Toast.makeText(getActivity().getApplicationContext(),
+                                Toast.makeText(getActivity(),
                                         "Waiting for " + to.getUsername() + " to accept",
                                         Toast.LENGTH_LONG).show();
                                 todo.setACL(groupACL);
@@ -247,7 +273,7 @@ public class NewNoteFragment extends Fragment {
                                     e1.printStackTrace();
                                 }
                             } else {
-                                Toast.makeText(getActivity().getApplicationContext(),
+                                Toast.makeText(getActivity(),
                                         "Unable to share note " + to.getUsername(),
                                         Toast.LENGTH_LONG).show();
                             }
@@ -259,15 +285,17 @@ public class NewNoteFragment extends Fragment {
     }
 
     private void updateNote() {
-        Todo todo = ((NewTodoActivity)getActivity()).getNote();
+        Todo todo = ((NewNoteActivity)getActivity()).getNote();
         if (todo.getTitle() != null) {
-            todoText.setText(todo.getTitle());
+            noteText.setText(todo.getTitle());
         }
         if (todo.getAuthors().contains(ParseUser.getCurrentUser())) {
+            photoButton.setVisibility(View.VISIBLE);
             deleteButton.setVisibility(View.VISIBLE);
             saveButton.setVisibility(View.VISIBLE);
             shareButton.setVisibility(View.VISIBLE);
         } else {
+            photoButton.setVisibility(View.INVISIBLE);
             deleteButton.setVisibility(View.INVISIBLE);
             saveButton.setVisibility(View.INVISIBLE);
             shareButton.setVisibility(View.INVISIBLE);
@@ -275,7 +303,7 @@ public class NewNoteFragment extends Fragment {
     }
 
     private void saveNote(final boolean finishView) {
-        Todo todo = ((NewTodoActivity)getActivity()).getNote();
+        Todo todo = ((NewNoteActivity)getActivity()).getNote();
         todo.pinInBackground(TodoListApplication.TODO_GROUP_NAME,
                 new SaveCallback() {
 
@@ -290,7 +318,7 @@ public class NewNoteFragment extends Fragment {
                                 getActivity().finish();
                             }
                         } else {
-                            Toast.makeText(getActivity().getApplicationContext(),
+                            Toast.makeText(getActivity(),
                                     "Error saving: " + e.getMessage(),
                                     Toast.LENGTH_LONG).show();
                         }
