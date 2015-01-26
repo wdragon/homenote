@@ -5,9 +5,9 @@ import android.app.Application;
 import android.util.Log;
 import com.parse.*;
 
-public class TodoListApplication extends Application {
+public class HomeNoteApplication extends Application {
 	
-	public static final String TODO_GROUP_NAME = "ALL_TODOS";
+	public static final String NOTE_GROUP_NAME = "ALL_HOMENOTES";
 	public static final String APP_ID = "lUxqItROakvKK4qhf16UqAonJCBd9unW03pSPjpi";
     public static final String CLIENT_KEY = "gHeDLxic1j6XtvhBMl6SZ1aA0B9iKm1W5FAYs3jl";
 
@@ -15,8 +15,9 @@ public class TodoListApplication extends Application {
 	public void onCreate() {
 		super.onCreate();
 		
-		// add Todo subclass
-		ParseObject.registerSubclass(Todo.class);
+		// add Note subclass
+		ParseObject.registerSubclass(Note.class);
+        ParseObject.registerSubclass(NoteSnippet.class);
         ParseObject.registerSubclass(NoteShare.class);
 
 		// enable the Local Datastore

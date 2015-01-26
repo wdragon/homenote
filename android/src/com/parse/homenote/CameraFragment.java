@@ -17,6 +17,7 @@ import com.parse.SaveCallback;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 
 /**
  * Created by Yuntao Jia on 1/3/2015.
@@ -112,10 +113,10 @@ public class CameraFragment extends Fragment {
     private void saveScaledPhoto(byte[] data) {
 
         // Resize photo from camera byte array
-        int width = PhotoUtils.PHOTO_PREVIEW_WIDTH;
         Bitmap noteImage = BitmapFactory.decodeByteArray(data, 0, data.length);
-        Bitmap noteImageScaled = Bitmap.createScaledBitmap(noteImage, width, width
-                * noteImage.getHeight() / noteImage.getWidth(), false);
+        final int width = PhotoUtils.PHOTO_PREVIEW_WIDTH;
+        final int height = width * noteImage.getHeight() / noteImage.getWidth();
+        Bitmap noteImageScaled = Bitmap.createScaledBitmap(noteImage, width, height,false);
 
         // Override Android default landscape orientation and save portrait
         Matrix matrix = new Matrix();
@@ -130,7 +131,6 @@ public class CameraFragment extends Fragment {
         byte[] scaledData = bos.toByteArray();
 
         // Save the scaled image to Parse
-
         photoFile = new ParseFile("note_photo.jpg", scaledData);
         photoFile.saveInBackground(new SaveCallback() {
 
@@ -140,7 +140,7 @@ public class CameraFragment extends Fragment {
                             "Error saving: " + e.getMessage(),
                             Toast.LENGTH_LONG).show();
                 } else {
-                    addPhotoToNoteAndReturn(photoFile);
+                    addPhotoToNoteAndReturn(photoFile, width, height);
                 }
             }
         });
@@ -152,9 +152,18 @@ public class CameraFragment extends Fragment {
      * named it "NewMealFragment". Now we'll pop fragments off the back stack
      * until we reach that Fragment.
      */
-    private void addPhotoToNoteAndReturn(ParseFile photoFile) {
-        ((NewNoteActivity) getActivity()).addPhotoFile(
-                photoFile);
+    private void addPhotoToNoteAndReturn(ParseFile photoFile, int width, int height) {
+        NewNoteActivity activity = ((NewNoteActivity) getActivity());
+        NoteSnippet snippet = activity.getNote().createNewLastSnippet();
+        activity.getNote().setDraft(true);
+        ArrayList<ParseFile> photos = new ArrayList<ParseFile>();
+        photos.add(photoFile);
+        snippet.setPhotos(photos);
+        snippet.setDraft(true);
+        ArrayList<NoteSnippet> snippets = new ArrayList<NoteSnippet>();
+        snippets.add(snippet);
+        activity.pinSnippets(snippets);
+
         FragmentManager fm = getActivity().getFragmentManager();
         fm.popBackStack("NewNoteFragment",
                 FragmentManager.POP_BACK_STACK_INCLUSIVE);

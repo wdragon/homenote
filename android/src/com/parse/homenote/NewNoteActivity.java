@@ -1,41 +1,76 @@
 package com.parse.homenote;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.Fragment;
 import android.app.FragmentManager;
-import android.content.DialogInterface;
 import android.os.Bundle;
-import android.provider.ContactsContract;
-import android.view.View;
-import android.view.View.OnClickListener;
-import android.view.Window;
-import android.view.WindowManager;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.Toast;
 
+import android.util.Log;
+import android.widget.Toast;
 import com.parse.*;
-import org.json.JSONException;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 public class NewNoteActivity extends Activity {
 
-	private Todo todo;
+	private Note note;
 
-    public void setNote(Todo todo_) {
-        todo = todo_;
+    public void setNote(Note note_) {
+        note = note_;
     }
 
-    public Todo getNote() {
-        return todo;
+    public Note getNote() {
+        return note;
     }
 
-    public void addPhotoFile(ParseFile photo) {
+    private Fragment getFragment() {
+        FragmentManager manager = getFragmentManager();
+        return manager.findFragmentById(R.id.fragmentContainer);
+    }
 
+    public void pinSnippets(List<NoteSnippet> snippets) {
+        NoteSnippet.pinAllInBackground(HomeNoteApplication.NOTE_GROUP_NAME, snippets,
+                new SaveCallback() {
+                    @Override
+                    public void done(ParseException e) {
+                        if (isFinishing()) {
+                            return;
+                        }
+                        if (e != null) {
+                            Toast.makeText(getApplicationContext(),
+                                    "Error saving: " + e.getMessage(),
+                                    Toast.LENGTH_LONG).show();
+                        }
+                    }
+                }
+        );
+    }
+
+    public void commitView() {
+        if (note != null && note.isDraft()) {
+            note.pinInBackground(HomeNoteApplication.NOTE_GROUP_NAME,
+                    new SaveCallback() {
+                        @Override
+                        public void done(ParseException e) {
+                            if (isFinishing()) {
+                                return;
+                            }
+                            if (e == null) {
+                                setResult(Activity.RESULT_OK);
+                                finish();
+                            } else {
+                                Toast.makeText(getApplicationContext(),
+                                        "Error saving: " + e.getMessage(),
+                                        Toast.LENGTH_LONG).show();
+                            }
+                        }
+                    }
+            );
+        } else {
+            setResult(Activity.RESULT_OK);
+            finish();
+        }
     }
 
 	@Override
@@ -46,13 +81,11 @@ public class NewNoteActivity extends Activity {
 
 		setContentView(R.layout.activity_new_todo);
 
-        FragmentManager manager = getFragmentManager();
-        Fragment fragment = manager.findFragmentById(R.id.fragmentContainer);
-
+        Fragment fragment = getFragment();
         if (fragment == null) {
             fragment = new NewNoteFragment();
             fragment.setArguments(getIntent().getExtras());
-            manager.beginTransaction().add(R.id.fragmentContainer, fragment).commit();
+            getFragmentManager().beginTransaction().add(R.id.fragmentContainer, fragment).commit();
         }
 	}
 }

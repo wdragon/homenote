@@ -11,13 +11,12 @@
         android:textSize="18sp"
         android:text="@string/todo_prompt" />
 
-    <EditText
-        android:id="@+id/todo_text"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:paddingTop="30dp" >
-    </EditText>
+    <ListView
+            android:id="@+id/snippetList"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:divider="@null"
+            android:descendantFocusability="beforeDescendants" />
 
     <ImageButton
             android:id="@+id/photoButton"
