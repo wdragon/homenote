@@ -41,7 +41,12 @@
                 android:id="@+id/snippet_photo"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:scaleType="fitXY"
+                android:layout_margin="0dp"
+                android:paddingLeft="@dimen/note_item_padding_left_right"
+                android:paddingRight="@dimen/note_item_padding_left_right"
+                android:cropToPadding="false"
+                android:adjustViewBounds="true"
+                android:scaleType="fitCenter"
                 android:visibility="visible" />
 
     </LinearLayout>

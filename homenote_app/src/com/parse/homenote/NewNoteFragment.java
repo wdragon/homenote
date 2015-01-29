@@ -404,6 +404,7 @@ public class NewNoteFragment extends Fragment {
             } else {
                 holder.photo.setVisibility(View.GONE);
             }
+            holder.timestamp.setText(NoteUtils.getRelativeDateTimeString(getContext(), snippet.getCreatedAt()));
             return view;
         }
     }
