@@ -2,8 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/ParseUI-Android/ParseLoginUI/ParseLoginUI.iml" filepath="$PROJECT_DIR$/ParseUI-Android/ParseLoginUI/ParseLoginUI.iml" />
-      <module fileurl="file://$PROJECT_DIR$/android/android.iml" filepath="$PROJECT_DIR$/android/android.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ParseLoginUI/ParseLoginUI.iml" filepath="$PROJECT_DIR$/ParseLoginUI/ParseLoginUI.iml" />
+      <module fileurl="file://$PROJECT_DIR$/homenote.iml" filepath="$PROJECT_DIR$/homenote.iml" />
+      <module fileurl="file://$PROJECT_DIR$/homenote_app/homenote_app.iml" filepath="$PROJECT_DIR$/homenote_app/homenote_app.iml" />
     </modules>
   </component>
 </project>
