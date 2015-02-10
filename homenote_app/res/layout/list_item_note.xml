@@ -3,14 +3,54 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:gravity="center_vertical" >
-    
-    <TextView
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:layout_marginLeft="@dimen/note_item_margin"
+        android:layout_marginRight="@dimen/note_item_margin"
+        android:layout_marginTop="@dimen/note_item_margin"
+        android:layout_marginBottom="@dimen/note_item_margin"
+        android:orientation="vertical" >
+
+        <TextView
             android:id="@+id/note_title"
-            android:layout_width="wrap_content"
+            android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:fontFamily="sans-serif"
-            android:layout_margin="20dp"
+            android:paddingLeft="@dimen/note_item_status_pad_left_right"
+            android:paddingRight="@dimen/note_item_status_pad_left_right"
             android:textSize="20sp"
-            android:layout_alignParentLeft="true" />
+            android:layout_alignParentLeft="true"
+            android:ellipsize="end"
+            android:maxLines="3" />
+
+        <com.parse.ParseImageView
+            android:id="@+id/snippet_photo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="0dp"
+            android:paddingLeft="@dimen/note_item_padding_left_right"
+            android:paddingRight="@dimen/note_item_padding_left_right"
+            android:cropToPadding="false"
+            android:adjustViewBounds="true"
+            android:scaleType="fitCenter"
+            android:visibility="invisible" />
+
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingLeft="@dimen/note_item_padding_left_right"
+            android:paddingRight="@dimen/note_item_padding_left_right" >
+            <TextView
+                android:id="@+id/note_meta_data"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/timestamp"
+                android:textSize="@dimen/note_item_meta_data" />
+        </LinearLayout>
+
+    </LinearLayout>
 
 </RelativeLayout>

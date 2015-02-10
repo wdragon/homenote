@@ -16,7 +16,8 @@
         android:gravity="center"
         android:text="@string/not_logged_in"
         android:textAlignment="center"
-        android:textSize="18sp" />
+        android:textSize="18sp"
+        android:paddingBottom="5dp" />
 
     <ListView
         android:id="@+id/note_list_view"

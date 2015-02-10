@@ -47,7 +47,7 @@
                 android:cropToPadding="false"
                 android:adjustViewBounds="true"
                 android:scaleType="fitCenter"
-                android:visibility="visible" />
+                android:visibility="invisible" />
 
     </LinearLayout>
 

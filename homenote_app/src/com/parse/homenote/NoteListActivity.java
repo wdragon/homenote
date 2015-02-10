@@ -63,7 +63,7 @@ public class NoteListActivity extends Activity {
 		ParseQueryAdapter.QueryFactory<Note> factory = new ParseQueryAdapter.QueryFactory<Note>() {
 			public ParseQuery<Note> create() {
 				ParseQuery<Note> queryLocal = Note.getQueryIncludeLastSnippet();
-                queryLocal.whereEqualTo("authors", ParseUser.getCurrentUser());
+                //queryLocal.whereEqualTo("authors", ParseUser.getCurrentUser());
                 queryLocal.orderByDescending("createdAt");
                 queryLocal.fromLocalDatastore();
                 return queryLocal;
@@ -366,29 +366,32 @@ public class NoteListActivity extends Activity {
 		}
 
 		@Override
-		public View getItemView(Note note, View view, ViewGroup parent) {
+		public View getItemView(final Note note, View view, ViewGroup parent) {
 			ViewHolder holder;
 			if (view == null) {
 				view = inflater.inflate(R.layout.list_item_note, parent, false);
 				holder = new ViewHolder();
-				holder.todoTitle = (TextView) view
-						.findViewById(R.id.note_title);
+				holder.noteTitle = (TextView) view.findViewById(R.id.note_title);
+                holder.noteMetaData = (TextView) view.findViewById(R.id.note_meta_data);
 				view.setTag(holder);
 			} else {
 				holder = (ViewHolder) view.getTag();
 			}
-			TextView todoTitle = holder.todoTitle;
-			todoTitle.setText(note.getLastSnippet().getTitle());
+            NoteSnippet snippet = note.getLastSnippet();
+			TextView todoTitle = holder.noteTitle;
+			todoTitle.setText(snippet.getTitle());
 			if (note.isDraft()) {
 				todoTitle.setTypeface(null, Typeface.ITALIC);
 			} else {
 				todoTitle.setTypeface(null, Typeface.NORMAL);
 			}
+            holder.noteMetaData.setText(NoteUtils.getNoteSnippetMetaText(getContext(), note, snippet));
 			return view;
 		}
 	}
 
 	private static class ViewHolder {
-		TextView todoTitle;
+		TextView noteTitle;
+        TextView noteMetaData;
 	}
 }

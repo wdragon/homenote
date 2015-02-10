@@ -1,6 +1,7 @@
 package com.parse.homenote;
 
 import android.content.Context;
+import android.text.TextUtils;
 import android.text.format.DateUtils;
 
 import com.parse.ParseInstallation;
@@ -59,5 +60,15 @@ public class NoteUtils {
                     return creator.getUsername() + " and " + Integer.toString(authors.size()) + " +";
             }
         }
+    }
+
+    public static CharSequence getNoteSnippetMetaText(Context c, Note note, NoteSnippet snippet) {
+        CharSequence date = "Just now";
+        if (snippet.getCreatedAt() != null) {
+            date = NoteUtils.getRelativeDateTimeString(c, snippet.getCreatedAt());
+        }
+        CharSequence sharing = NoteUtils.getSharingString(note);
+        CharSequence[] strs = {date, sharing};
+        return TextUtils.join(NoteUtils.delimiter, strs);
     }
 }

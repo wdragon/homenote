@@ -433,11 +433,8 @@ public class NewNoteFragment extends Fragment {
             } else {
                 holder.photo.setVisibility(View.GONE);
             }
-            if (snippet.getCreatedAt() != null) {
-                CharSequence date = NoteUtils.getRelativeDateTimeString(getContext(), snippet.getCreatedAt());
-                CharSequence sharing = NoteUtils.getSharingString(((NewNoteActivity)getContext()).getNote());
-                CharSequence[] strs = {date, sharing};
-                holder.timestamp.setText(TextUtils.join(NoteUtils.delimiter, strs));
+            if (true) {
+                holder.timestamp.setText(NoteUtils.getNoteSnippetMetaText(getContext(), ((NewNoteActivity)getContext()).getNote(), snippet));
                 holder.timestamp.setVisibility(View.VISIBLE);
             } else {
                 holder.timestamp.setVisibility(View.GONE);
