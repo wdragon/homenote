@@ -7,12 +7,20 @@ import android.app.FragmentTransaction;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.*;
 import com.parse.*;
+import com.parse.codec.binary.StringUtils;
+
 import org.json.JSONException;
 
 import java.util.ArrayList;
@@ -23,18 +31,10 @@ import java.util.List;
  */
 public class NewNoteFragment extends Fragment {
 
-    private ImageButton photoButton;
-    private Button saveButton;
-    private Button shareButton;
-    private Button deleteButton;
-
-    private EditText editedSnippetText = null;
-    private NoteSnippet editedSnippet = null;
-
     private LayoutInflater inflater;
-    private ListView snippetListView
-            ;
+    private ListView snippetListView;
     private NoteSnippetListAdapter snippetListAdapter;
+    private Menu menu;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -48,6 +48,8 @@ public class NewNoteFragment extends Fragment {
         final View v = inflater.inflate(R.layout.fragment_new_note, parent, false);
         final NewNoteActivity activity = (NewNoteActivity)getActivity();
 
+        setHasOptionsMenu(true);
+
         // Fetch the noteId from the Extra data
         String noteId = null;
         String noteShareId = null;
@@ -55,11 +57,6 @@ public class NewNoteFragment extends Fragment {
             noteId = getArguments().getString("ID");
             noteShareId = getArguments().getString("noteShareId");
         }
-
-        photoButton = (ImageButton) v.findViewById(R.id.photoButton);
-        saveButton = (Button) v.findViewById(R.id.saveButton);
-        shareButton = (Button) v.findViewById(R.id.shareButton);
-        deleteButton = (Button) v.findViewById(R.id.deleteButton);
 
         if (noteId != null) {
             ParseQuery<Note> query = Note.getQueryIncludeLastSnippet();
@@ -107,7 +104,7 @@ public class NewNoteFragment extends Fragment {
                                 authors.add(ParseUser.getCurrentUser());
                                 note.setAuthors(authors);
                                 note.setDraft(true);
-                                updateButtons(note);
+                                updateActions(note);
                             }
                         }
                     });
@@ -145,95 +142,93 @@ public class NewNoteFragment extends Fragment {
             setupSnippetsView(note, v);
         }
 
-        photoButton.setOnClickListener(new View.OnClickListener() {
-
-            @Override
-            public void onClick(View v) {
-                InputMethodManager imm = (InputMethodManager) getActivity()
-                        .getSystemService(Context.INPUT_METHOD_SERVICE);
-                if (editedSnippetText != null) {
-                    imm.hideSoftInputFromWindow(editedSnippetText.getWindowToken(), 0);
-                }
-                startCamera();
-            }
-        });
-
-        saveButton.setOnClickListener(new View.OnClickListener() {
-
-            @Override
-            public void onClick(View v) {
-                if (editedSnippetText != null) {
-                    editedSnippet.setTitle(editedSnippetText.getText().toString());
-                    editedSnippet.setDraft(true);
-                    activity.getNote().setDraft(true);
-                }
-                activity.commitView();
-            }
-        });
-
-        shareButton.setOnClickListener(new View.OnClickListener() {
-
-            @Override
-            public void onClick(View v) {
-                AlertDialog.Builder alert = new AlertDialog.Builder(v.getContext());
-                alert.setMessage("Share note with:");
-
-                final EditText input = new EditText(v.getContext());
-                alert.setView(input);
-
-                alert.setPositiveButton("Share", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int whichButton) {
-                        String friendName = input.getText().toString();
-                        ParseQuery<ParseUser> query = ParseUser.getQuery();
-                        query.whereEqualTo("username", friendName);
-                        query.getFirstInBackground(new GetCallback<ParseUser>() {
-                            public void done(ParseUser user, ParseException e) {
-                                if (e == null) {
-                                    // The query was successful.
-                                    shareNote(ParseUser.getCurrentUser(), user);
-                                } else {
-                                    Toast.makeText(getActivity(),
-                                            "Error sharing: " + e.getMessage(),
-                                            Toast.LENGTH_LONG).show();
-                                }
-                            }
-                        });
-                    }
-                });
-
-                alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int whichButton) {
-                        // Canceled.
-                    }
-                });
-
-                alert.show();
-            }
-        });
-
-        deleteButton.setOnClickListener(new View.OnClickListener() {
-
-            @Override
-            public void onClick(View v) {
-                // The todo will be deleted eventually but will
-                // immediately be excluded from query results.
-
-                activity.getNote().deleteEventually();
-                getActivity().setResult(Activity.RESULT_OK);
-                getActivity().finish();
-            }
-        });
-
         return v;
     }
 
-    public void startCamera() {
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater1) {
+        inflater1.inflate(R.menu.individual_note, menu);
+        this.menu = menu;
+
+        NewNoteActivity activity = (NewNoteActivity)getActivity();
+        updateActions(activity.getNote());
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        NewNoteActivity activity = (NewNoteActivity)getActivity();
+        if (item.getItemId() == R.id.action_camera) {
+            InputMethodManager imm = (InputMethodManager) getActivity()
+                    .getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (snippetListAdapter.getCurrentText() != null) {
+                imm.hideSoftInputFromWindow(snippetListAdapter.getCurrentText().getWindowToken(), 0);
+            }
+            startCamera();
+        }
+
+        if (item.getItemId() == R.id.action_save) {
+            snippetListAdapter.save();
+            activity.commitView();
+        }
+
+        if (item.getItemId() == R.id.action_share) {
+            startShareDialog();
+        }
+
+        if (item.getItemId() == R.id.action_discard) {
+            // The todo will be deleted eventually but will
+            // immediately be excluded from query results.
+            activity.getNote().deleteEventually();
+            getActivity().setResult(Activity.RESULT_OK);
+            getActivity().finish();
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void startCamera() {
         Fragment cameraFragment = new CameraFragment();
         FragmentTransaction transaction = getActivity().getFragmentManager()
                 .beginTransaction();
         transaction.replace(R.id.fragmentContainer, cameraFragment);
         transaction.addToBackStack("NewNoteFragment");
         transaction.commit();
+    }
+
+    private void startShareDialog() {
+        AlertDialog.Builder alert = new AlertDialog.Builder(getView().getContext());
+        alert.setMessage("Share note with:");
+
+        final EditText input = new EditText(getView().getContext());
+        alert.setView(input);
+
+        alert.setPositiveButton("Share", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                String friendName = input.getText().toString();
+                ParseQuery<ParseUser> query = ParseUser.getQuery();
+                query.whereEqualTo("username", friendName);
+                query.getFirstInBackground(new GetCallback<ParseUser>() {
+                    public void done(ParseUser user, ParseException e) {
+                        if (e == null) {
+                            // The query was successful.
+                            shareNote(ParseUser.getCurrentUser(), user);
+                        } else {
+                            Toast.makeText(getActivity(),
+                                    "Error sharing: " + e.getMessage(),
+                                    Toast.LENGTH_LONG).show();
+                        }
+                    }
+                });
+            }
+        });
+
+        alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                // Canceled.
+            }
+        });
+
+        alert.show();
     }
 
     protected void shareNote(final ParseUser from, final ParseUser to) {
@@ -336,27 +331,57 @@ public class NewNoteFragment extends Fragment {
 
         snippetListView = (ListView) v.findViewById(R.id.snippetList);
         snippetListView.setAdapter(snippetListAdapter);
-        updateButtons(note);
+        updateActions(note);
     }
 
-    public void updateButtons(Note note) {
-        if (note.getAuthors().contains(ParseUser.getCurrentUser())) {
-            photoButton.setVisibility(View.VISIBLE);
-            deleteButton.setVisibility(View.VISIBLE);
-            saveButton.setVisibility(View.VISIBLE);
-            shareButton.setVisibility(View.VISIBLE);
-        } else {
-            photoButton.setVisibility(View.INVISIBLE);
-            deleteButton.setVisibility(View.INVISIBLE);
-            saveButton.setVisibility(View.INVISIBLE);
-            shareButton.setVisibility(View.INVISIBLE);
+    public void updateActions(Note note) {
+        if (menu != null && note != null) {
+            if (note.getAuthors().contains(ParseUser.getCurrentUser())) {
+                menu.findItem(R.id.action_camera).setVisible(true);
+                menu.findItem(R.id.action_save).setVisible(true);
+                menu.findItem(R.id.action_share).setVisible(true);
+                menu.findItem(R.id.action_discard).setVisible(true);
+            } else {
+                menu.findItem(R.id.action_camera).setVisible(false);
+                menu.findItem(R.id.action_save).setVisible(false);
+                menu.findItem(R.id.action_share).setVisible(false);
+                menu.findItem(R.id.action_discard).setVisible(false);
+            }
         }
+    }
+
+    private static class ViewHolder {
+        TextView timestamp;
+        EditText text;
+        ParseImageView photo;
+        boolean edited = false;
+        NoteSnippet snippet;
     }
 
     private class NoteSnippetListAdapter extends ParseQueryAdapter<NoteSnippet> {
 
+        private ViewHolder lastSnippetVH = null;
+
         public NoteSnippetListAdapter(Context context, QueryFactory<NoteSnippet> queryFactory) {
             super(context, queryFactory);
+        }
+
+        public void save() {
+            if (lastSnippetVH != null) {
+                if (lastSnippetVH.edited == true) {
+                    lastSnippetVH.snippet.setTitle(lastSnippetVH.text.getText().toString());
+                    lastSnippetVH.snippet.setDraft(true);
+                    ((NewNoteActivity)getContext()).getNote().setDraft(true);
+                    lastSnippetVH.edited = false;
+                }
+            }
+        }
+
+        public EditText getCurrentText() {
+            if (lastSnippetVH != null) {
+                return lastSnippetVH.text;
+            }
+            return null;
         }
 
         public View getItemView(final NoteSnippet snippet, View view, ViewGroup parent) {
@@ -365,26 +390,30 @@ public class NewNoteFragment extends Fragment {
                 view = inflater.inflate(R.layout.note_item_snippet, parent, false);
                 holder = new ViewHolder();
                 holder.timestamp = (TextView) view
-                        .findViewById(R.id.snippet_time);
+                        .findViewById(R.id.snippet_meta_data);
                 holder.text = (EditText) view.findViewById(R.id.snippet_text);
                 holder.photo = (ParseImageView) view.findViewById(R.id.snippet_photo);
+                holder.snippet = snippet;
                 view.setTag(holder);
 
                 holder.text.setOnFocusChangeListener(new View.OnFocusChangeListener() {
                     @Override
                     public void onFocusChange(View v, boolean hasFocus) {
-                        EditText text = (EditText) v;
-                        if (text != null) {
-                            if (!hasFocus) {
-                                snippet.setTitle(text.getText().toString());
-                                snippet.setDraft(true);
-                                ((NewNoteActivity)getContext()).getNote().setDraft(true);
-                            } else {
-                                editedSnippet = snippet;
-                                editedSnippetText = text;
-                            }
+                        if (hasFocus && lastSnippetVH != holder) {
+                            save();
+                            lastSnippetVH = holder;
                         }
                     }
+                });
+                holder.text.addTextChangedListener(new TextWatcher() {
+                    @Override
+                    public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                    @Override
+                    public void onTextChanged(CharSequence s, int start, int before, int count) {
+                        holder.edited = true;
+                    }
+                    @Override
+                    public void afterTextChanged(Editable s) {}
                 });
             } else {
                 holder = (ViewHolder) view.getTag();
@@ -404,14 +433,16 @@ public class NewNoteFragment extends Fragment {
             } else {
                 holder.photo.setVisibility(View.GONE);
             }
-            holder.timestamp.setText(NoteUtils.getRelativeDateTimeString(getContext(), snippet.getCreatedAt()));
+            if (snippet.getCreatedAt() != null) {
+                CharSequence date = NoteUtils.getRelativeDateTimeString(getContext(), snippet.getCreatedAt());
+                CharSequence sharing = NoteUtils.getSharingString(((NewNoteActivity)getContext()).getNote());
+                CharSequence[] strs = {date, sharing};
+                holder.timestamp.setText(TextUtils.join(NoteUtils.delimiter, strs));
+                holder.timestamp.setVisibility(View.VISIBLE);
+            } else {
+                holder.timestamp.setVisibility(View.GONE);
+            }
             return view;
         }
-    }
-
-    private static class ViewHolder {
-        TextView timestamp;
-        EditText text;
-        ParseImageView photo;
     }
 }

@@ -51,10 +51,10 @@ public class NoteListActivity extends Activity {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_todo_list);
+		setContentView(R.layout.activity_note_list);
 
 		// Set up the views
-		noteListView = (ListView) findViewById(R.id.todo_list_view);
+		noteListView = (ListView) findViewById(R.id.note_list_view);
 		noNotesView = (LinearLayout) findViewById(R.id.no_todos_view);
 		noteListView.setEmptyView(noNotesView);
 		loggedInInfoView = (TextView) findViewById(R.id.loggedin_info);
@@ -72,7 +72,7 @@ public class NoteListActivity extends Activity {
 		// Set up the adapter
 		inflater = (LayoutInflater) this
 				.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-		noteListAdapter = new ToDoListAdapter(this, factory);
+		noteListAdapter = new NoteListAdapter(this, factory);
 
 		// Attach the query adapter to the view
         noteListView.setAdapter(noteListAdapter);
@@ -358,10 +358,10 @@ public class NoteListActivity extends Activity {
         });
     }
 
-	private class ToDoListAdapter extends ParseQueryAdapter<Note> {
+	private class NoteListAdapter extends ParseQueryAdapter<Note> {
 
-		public ToDoListAdapter(Context context,
-				ParseQueryAdapter.QueryFactory<Note> queryFactory) {
+		public NoteListAdapter(Context context,
+                               ParseQueryAdapter.QueryFactory<Note> queryFactory) {
 			super(context, queryFactory);
 		}
 
@@ -372,7 +372,7 @@ public class NoteListActivity extends Activity {
 				view = inflater.inflate(R.layout.list_item_note, parent, false);
 				holder = new ViewHolder();
 				holder.todoTitle = (TextView) view
-						.findViewById(R.id.todo_title);
+						.findViewById(R.id.note_title);
 				view.setTag(holder);
 			} else {
 				holder = (ViewHolder) view.getTag();

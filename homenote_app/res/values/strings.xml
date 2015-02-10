@@ -15,10 +15,11 @@
     <string name="error_password">enter a password</string>
     <string name="password_mismatch">enter the same password twice</string>
     <string name="todo_prompt">Enter note details:</string>
-    <string name="save">Save</string>
-    <string name="share">Share</string>
+    <string name="action_camera">Photo</string>
+    <string name="action_save">Save</string>
+    <string name="action_share">Share</string>
     <string name="cancel">Cancel</string>
-    <string name="delete">Delete</string>
+    <string name="action_discard">Delete</string>
     <string name="action_new">New Todo</string>
     <string name="action_sync">Sync</string>
     <string name="action_logout">Log Out</string>

@@ -22,11 +22,11 @@
                 android:paddingLeft="@dimen/note_item_padding_left_right"
                 android:paddingRight="@dimen/note_item_padding_left_right" >
             <TextView
-                    android:id="@+id/snippet_time"
+                    android:id="@+id/snippet_meta_data"
                     android:layout_width="fill_parent"
                     android:layout_height="wrap_content"
                     android:textColor="@color/timestamp"
-                    android:textSize="@dimen/note_item_timestamp" />
+                    android:textSize="@dimen/note_item_meta_data" />
         </LinearLayout>
         <EditText
                 android:id="@+id/snippet_text"
