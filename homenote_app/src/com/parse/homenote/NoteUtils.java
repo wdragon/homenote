@@ -3,6 +3,7 @@ package com.parse.homenote;
 import android.content.Context;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
+import android.widget.ImageView;
 
 import com.parse.Parse;
 import com.parse.ParseException;
@@ -100,5 +101,14 @@ public class NoteUtils {
             note.deleteEventually();
         }
         note.unpin(HomeNoteApplication.NOTE_GROUP_NAME);
+    }
+
+    public static void setImageAlpha(ImageView photo, int alpha) {
+        int currentapiVersion = android.os.Build.VERSION.SDK_INT;
+        if (currentapiVersion >= android.os.Build.VERSION_CODES.JELLY_BEAN){
+            photo.setImageAlpha(alpha);
+        } else{
+            photo.setAlpha(alpha);
+        }
     }
 }

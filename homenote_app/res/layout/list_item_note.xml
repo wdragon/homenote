@@ -13,6 +13,18 @@
         android:layout_marginBottom="@dimen/note_item_margin"
         android:orientation="vertical" >
 
+        <com.parse.ParseImageView
+            android:id="@+id/note_photo"
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:layout_margin="0dp"
+            android:paddingLeft="@dimen/note_item_padding_left_right"
+            android:paddingRight="@dimen/note_item_padding_left_right"
+            android:cropToPadding="false"
+            android:adjustViewBounds="true"
+            android:scaleType="center"
+            android:visibility="invisible" />
+
         <TextView
             android:id="@+id/note_title"
             android:layout_width="fill_parent"
@@ -24,18 +36,6 @@
             android:layout_alignParentLeft="true"
             android:ellipsize="end"
             android:maxLines="3" />
-
-        <com.parse.ParseImageView
-            android:id="@+id/snippet_photo"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_margin="0dp"
-            android:paddingLeft="@dimen/note_item_padding_left_right"
-            android:paddingRight="@dimen/note_item_padding_left_right"
-            android:cropToPadding="false"
-            android:adjustViewBounds="true"
-            android:scaleType="fitCenter"
-            android:visibility="invisible" />
 
         <LinearLayout
             android:layout_width="fill_parent"

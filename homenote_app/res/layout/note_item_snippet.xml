@@ -28,14 +28,6 @@
                     android:textColor="@color/timestamp"
                     android:textSize="@dimen/note_item_meta_data" />
         </LinearLayout>
-        <EditText
-                android:id="@+id/snippet_text"
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:paddingBottom="5dp"
-                android:paddingLeft="@dimen/note_item_status_pad_left_right"
-                android:paddingRight="@dimen/note_item_status_pad_left_right"
-                android:paddingTop="@dimen/note_item_status_pad_top" />
 
         <com.parse.ParseImageView
                 android:id="@+id/snippet_photo"
@@ -48,6 +40,15 @@
                 android:adjustViewBounds="true"
                 android:scaleType="fitCenter"
                 android:visibility="invisible" />
+
+        <EditText
+            android:id="@+id/snippet_text"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="5dp"
+            android:paddingLeft="@dimen/note_item_status_pad_left_right"
+            android:paddingRight="@dimen/note_item_status_pad_left_right"
+            android:paddingTop="@dimen/note_item_status_pad_top" />
 
     </LinearLayout>
 

@@ -426,7 +426,10 @@ public class NewNoteFragment extends Fragment {
             }
 
             if (snippet.getTitle() != null) {
+                holder.text.setVisibility(View.VISIBLE);
                 holder.text.setText(snippet.getTitle());
+            } else {
+                holder.text.setVisibility(View.GONE);
             }
             if (snippet.getPhotos() != null) {
                 holder.photo.setParseFile(snippet.getPhotos().get(0));

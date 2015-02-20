@@ -17,4 +17,11 @@
         <!-- All customizations that are NOT specific to a particular API-level can go here. -->
     </style>
 
+    <style name="RefreshImage">
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:paddingLeft">12dip</item>
+        <item name="android:paddingRight">12dip</item>
+        <item name="android:src">@drawable/ic_action_refresh</item>
+    </style>
+
 </resources>

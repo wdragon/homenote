@@ -15,16 +15,21 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.parse.FindCallback;
+import com.parse.GetDataCallback;
 import com.parse.ParseAnonymousUtils;
 import com.parse.ParseException;
+import com.parse.ParseImageView;
 import com.parse.ParseObject;
 import com.parse.ParseQuery;
 import com.parse.ParseQueryAdapter;
@@ -48,7 +53,15 @@ public class NoteListActivity extends Activity {
 
 	private TextView loggedInInfoView;
 
-	@Override
+    private MenuItem refreshItem;
+    private ImageView refreshActionView;
+    private Animation clockwiseRefresh;
+    private int syncFromParseCount = 0;
+    private int syncFromParseTotal = 0;
+    private int syncToParseCount = 0;
+    private int syncToParseTotal = 0;
+
+    @Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_note_list);
@@ -140,7 +153,13 @@ public class NoteListActivity extends Activity {
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		getMenuInflater().inflate(R.menu.note_list, menu);
-		return true;
+
+        refreshItem = menu.findItem(R.id.action_sync);
+        if (syncFromParseCount < syncFromParseTotal || syncToParseCount < syncToParseTotal) {
+            startSyncAnimation();
+        }
+
+        return true;
 	}
 
 	@Override
@@ -190,7 +209,34 @@ public class NoteListActivity extends Activity {
 		return true;
 	}
 
+    private void checkAndStopAnimation() {
+        if (syncFromParseCount >= syncFromParseTotal && syncToParseCount >= syncToParseTotal) {
+            if (refreshItem != null && refreshItem.getActionView() != null) {
+                refreshItem.getActionView().clearAnimation();
+                refreshItem.setActionView(null);
+            }
+        }
+    }
+
+    private void startSyncAnimation() {
+        if (refreshItem != null) {
+            if (refreshActionView == null) {
+                LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+                refreshActionView = (ImageView) inflater.inflate(R.layout.refresh_action_view, null);
+            }
+            if (clockwiseRefresh == null) {
+                clockwiseRefresh = AnimationUtils.loadAnimation(this, R.anim.clockwise_refresh);
+                clockwiseRefresh.setRepeatCount(Animation.INFINITE);
+            }
+
+            refreshActionView.startAnimation(clockwiseRefresh);
+            refreshItem.setActionView(refreshActionView);
+        }
+    }
+
     private void syncWithParse() {
+        startSyncAnimation();
+
         syncNotesToParse();
         loadFromParse();
     }
@@ -198,10 +244,14 @@ public class NoteListActivity extends Activity {
 	private void syncNotesToParse() {
 		// We could use saveEventually here, but we want to have some UI
 		// around whether or not the draft has been saved to Parse
+        syncToParseCount = 0;
+        syncToParseTotal = 0;
+
 		ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
 		NetworkInfo ni = cm.getActiveNetworkInfo();
 		if ((ni != null) && (ni.isConnected())) {
 			if (!ParseAnonymousUtils.isLinked(ParseUser.getCurrentUser())) {
+                syncToParseTotal += 2;
 				// If we have a network connection and a current logged in user,
 				// sync the notes
 
@@ -213,15 +263,20 @@ public class NoteListActivity extends Activity {
                 noteQuery.whereEqualTo("authors", ParseUser.getCurrentUser());
                 noteQuery.findInBackground(new FindCallback<Note>() {
                     public void done(List<Note> notes, ParseException e) {
+                        syncToParseCount ++;
+                        checkAndStopAnimation();
                         if (e == null) {
                             for (final Note note : notes) {
                                 // Set is draft flag to false before
                                 // syncing to Parse
+                                syncToParseTotal ++;
                                 note.setDraft(false);
                                 note.getLastSnippet().setDraft(false);
                                 note.saveInBackground(new SaveCallback() {
                                     @Override
                                     public void done(ParseException e) {
+                                        syncToParseCount ++;
+                                        checkAndStopAnimation();
                                         if (e == null) {
                                             // Let adapter know to update view
                                             if (!isFinishing()) {
@@ -253,14 +308,19 @@ public class NoteListActivity extends Activity {
                 snippetQuery.whereMatchesKeyInQuery("noteUuid", "uuid", noteQuery);
                 snippetQuery.findInBackground(new FindCallback<NoteSnippet>() {
                     public void done(List<NoteSnippet> snippets, ParseException e) {
+                        syncToParseCount ++;
+                        checkAndStopAnimation();
                         if (e == null) {
                             for (final NoteSnippet snippet: snippets) {
                                 // Set is draft flag to false before
                                 // syncing to Parse
+                                syncToParseTotal ++;
                                 snippet.setDraft(false);
                                 snippet.saveInBackground(new SaveCallback() {
                                     @Override
                                     public void done(ParseException e) {
+                                        syncToParseCount ++;
+                                        checkAndStopAnimation();
                                         if (e != null) {
                                             // Reset the is draft flag locally
                                             // to true
@@ -293,69 +353,88 @@ public class NoteListActivity extends Activity {
 					"Your device appears to be offline. Some notes may not have been synced to Parse.",
 					Toast.LENGTH_LONG).show();
 		}
-
+        checkAndStopAnimation();
 	}
 
 	private void loadFromParse() {
         // Authored notes
         // TODO: load the real last note
-		ParseQuery<Note> query = Note.getQueryIncludeLastSnippet();
-		query.whereEqualTo("authors", ParseUser.getCurrentUser());
-		query.findInBackground(new FindCallback<Note>() {
-			public void done(List<Note> notes, ParseException e) {
-				if (e == null) {
-					ParseObject.pinAllInBackground((List<Note>) notes,
-							new SaveCallback() {
-								public void done(ParseException e) {
-									if (e == null) {
-										if (!isFinishing()) {
-											noteListAdapter.loadObjects();
-										}
-									} else {
-                                        String message = "Error pinning notes: " + e.getMessage();
-										Log.i("NoteListActivity", message);
-                                        Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
-									}
-								}
-							});
-				} else {
-                    String message = "loadFromParse: Error finding pinned notes: " + e.getMessage();
-					Log.i("NoteListActivity", message);
-				}
-			}
-		});
+        syncFromParseCount = 0;
+        syncFromParseTotal = 0;
 
-        // TODO: Shared notes, do we need it?
-        ParseQuery<NoteShare> innerQuery = NoteShare.getQuery();
-        innerQuery.whereEqualTo("to", ParseUser.getCurrentUser());
-        innerQuery.whereEqualTo("confirmed", true);
-        ParseQuery<Note> queryShared = Note.getQueryIncludeLastSnippet();
-        queryShared.orderByDescending("createdAt");
-        queryShared.whereMatchesKeyInQuery("uuid", "noteUUID", innerQuery);
-        queryShared.whereEqualTo("authors", ParseUser.getCurrentUser());
-        queryShared.findInBackground(new FindCallback<Note>() {
-            public void done(List<Note> notes, ParseException e) {
-                if (e == null) {
-                    ParseObject.pinAllInBackground((List<Note>) notes,
-                            new SaveCallback() {
-                                public void done(ParseException e) {
-                                    if (e == null) {
-                                        if (!isFinishing()) {
-                                            noteListAdapter.loadObjects();
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo ni = cm.getActiveNetworkInfo();
+        if ((ni != null) && (ni.isConnected())) {
+            syncFromParseTotal += 2;
+            ParseQuery<Note> query = Note.getQueryIncludeLastSnippet();
+            query.whereEqualTo("authors", ParseUser.getCurrentUser());
+            query.findInBackground(new FindCallback<Note>() {
+                public void done(List<Note> notes, ParseException e) {
+                    syncFromParseCount++;
+                    checkAndStopAnimation();
+                    if (e == null) {
+                        syncFromParseTotal++;
+                        ParseObject.pinAllInBackground((List<Note>) notes,
+                                new SaveCallback() {
+                                    public void done(ParseException e) {
+                                        syncFromParseCount++;
+                                        checkAndStopAnimation();
+                                        if (e == null) {
+                                            if (!isFinishing()) {
+                                                noteListAdapter.loadObjects();
+                                            }
+                                        } else {
+                                            String message = "Error pinning notes: " + e.getMessage();
+                                            Log.i("NoteListActivity", message);
+                                            Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
                                         }
-                                    } else {
-                                        String message = "Error pinning notes: " + e.getMessage();
-                                        Log.i("NoteListActivity", message);
-                                        Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
                                     }
-                                }
-                            });
-                } else {
-                    String message = "loadFromParse: Error finding pinned notes: " + e.getMessage();
-                    Log.i("NoteListActivity", message);
+                                });
+                    } else {
+                        String message = "loadFromParse: Error finding pinned notes: " + e.getMessage();
+                        Log.i("NoteListActivity", message);
+                    }
                 }
-            }
-        });
+            });
+
+            // TODO: Shared notes, do we need it?
+            ParseQuery<NoteShare> innerQuery = NoteShare.getQuery();
+            innerQuery.whereEqualTo("to", ParseUser.getCurrentUser());
+            innerQuery.whereEqualTo("confirmed", true);
+            ParseQuery<Note> queryShared = Note.getQueryIncludeLastSnippet();
+            queryShared.orderByDescending("createdAt");
+            queryShared.whereMatchesKeyInQuery("uuid", "noteUUID", innerQuery);
+            queryShared.whereEqualTo("authors", ParseUser.getCurrentUser());
+            queryShared.findInBackground(new FindCallback<Note>() {
+                public void done(List<Note> notes, ParseException e) {
+                    syncFromParseCount++;
+                    checkAndStopAnimation();
+                    if (e == null) {
+                        syncFromParseTotal++;
+                        ParseObject.pinAllInBackground((List<Note>) notes,
+                                new SaveCallback() {
+                                    public void done(ParseException e) {
+                                        syncFromParseCount++;
+                                        checkAndStopAnimation();
+                                        if (e == null) {
+                                            if (!isFinishing()) {
+                                                noteListAdapter.loadObjects();
+                                            }
+                                        } else {
+                                            String message = "Error pinning notes: " + e.getMessage();
+                                            Log.i("NoteListActivity", message);
+                                            Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
+                                        }
+                                    }
+                                });
+                    } else {
+                        String message = "loadFromParse: Error finding pinned notes: " + e.getMessage();
+                        Log.i("NoteListActivity", message);
+                    }
+                }
+            });
+        }
+        checkAndStopAnimation();
     }
 
 	private class NoteListAdapter extends ParseQueryAdapter<Note> {
@@ -367,11 +446,12 @@ public class NoteListActivity extends Activity {
 
 		@Override
 		public View getItemView(final Note note, View view, ViewGroup parent) {
-			ViewHolder holder;
+			final ViewHolder holder;
 			if (view == null) {
 				view = inflater.inflate(R.layout.list_item_note, parent, false);
 				holder = new ViewHolder();
 				holder.noteTitle = (TextView) view.findViewById(R.id.note_title);
+                holder.photo = (ParseImageView) view.findViewById(R.id.note_photo);
                 holder.noteMetaData = (TextView) view.findViewById(R.id.note_meta_data);
 				view.setTag(holder);
 			} else {
@@ -379,12 +459,37 @@ public class NoteListActivity extends Activity {
 			}
             NoteSnippet snippet = note.getLastSnippet();
 			TextView todoTitle = holder.noteTitle;
-			todoTitle.setText(snippet.getTitle());
-			if (note.isDraft()) {
-				todoTitle.setTypeface(null, Typeface.ITALIC);
-			} else {
-				todoTitle.setTypeface(null, Typeface.NORMAL);
-			}
+            if (snippet.getTitle() == null || snippet.getTitle().length() == 0) {
+                todoTitle.setVisibility(View.GONE);
+            } else {
+                todoTitle.setText(snippet.getTitle());
+                todoTitle.setVisibility(View.VISIBLE);
+                if (note.isDraft()) {
+                    todoTitle.setTypeface(null, Typeface.ITALIC);
+                } else {
+                    todoTitle.setTypeface(null, Typeface.NORMAL);
+                }
+            }
+            if (snippet.getPhotos() != null) {
+                holder.photo.setParseFile(snippet.getPhotos().get(0));
+                holder.photo.loadInBackground(new GetDataCallback() {
+                    @Override
+                    public void done(byte[] data, ParseException e) {
+                        if (e == null) {
+                            if (note.isDraft()) {
+                                NoteUtils.setImageAlpha(holder.photo, 128);
+                            } else {
+                                NoteUtils.setImageAlpha(holder.photo, 255);
+                            }
+                            holder.photo.setVisibility(View.VISIBLE);
+                        } else {
+                            // show an error message
+                        }
+                    }
+                });
+            } else {
+                holder.photo.setVisibility(View.GONE);
+            }
             holder.noteMetaData.setText(NoteUtils.getNoteSnippetMetaText(getContext(), note, snippet));
 			return view;
 		}
@@ -392,6 +497,7 @@ public class NoteListActivity extends Activity {
 
 	private static class ViewHolder {
 		TextView noteTitle;
+        ParseImageView photo;
         TextView noteMetaData;
 	}
 }
