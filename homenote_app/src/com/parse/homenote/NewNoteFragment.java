@@ -178,9 +178,15 @@ public class NewNoteFragment extends Fragment {
         if (item.getItemId() == R.id.action_discard) {
             // The todo will be deleted eventually but will
             // immediately be excluded from query results.
-            activity.getNote().deleteEventually();
-            getActivity().setResult(Activity.RESULT_OK);
-            getActivity().finish();
+            try {
+                NoteUtils.deleteNote(activity.getNote());
+                getActivity().setResult(Activity.RESULT_OK);
+                getActivity().finish();
+            } catch (ParseException e) {
+                Toast.makeText(activity,
+                        "Error deleting note: " + e.getMessage(),
+                        Toast.LENGTH_LONG).show();
+            }
         }
 
         return super.onOptionsItemSelected(item);
@@ -336,7 +342,7 @@ public class NewNoteFragment extends Fragment {
 
     public void updateActions(Note note) {
         if (menu != null && note != null) {
-            if (note.getAuthors().contains(ParseUser.getCurrentUser())) {
+            if (NoteUtils.canViewerEdit(note)) {
                 menu.findItem(R.id.action_camera).setVisible(true);
                 menu.findItem(R.id.action_save).setVisible(true);
                 menu.findItem(R.id.action_share).setVisible(true);

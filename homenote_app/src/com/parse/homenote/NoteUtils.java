@@ -4,6 +4,8 @@ import android.content.Context;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
 
+import com.parse.Parse;
+import com.parse.ParseException;
 import com.parse.ParseInstallation;
 import com.parse.ParsePush;
 import com.parse.ParseQuery;
@@ -32,30 +34,43 @@ public class NoteUtils {
         ParseUser viewer = ParseUser.getCurrentUser();
         ParseUser creator = note.getCreator();
         ArrayList<ParseUser> authors = note.getAuthors();
-        authors.remove(viewer);
-
+        int offset = authors.contains(creator) ? 1 : 0;
+        int creatorIndex = authors.indexOf(creator);
+        int index, index1;
         if (viewer == creator) {
-            switch (authors.size()) {
+            switch (authors.size() - offset) {
                 case 0:
                     // Only Me
                     return "Only Me";
                 case 1:
                     // Yuntao
-                    return authors.get(0).getUsername();
+                    index = (creatorIndex == 0) ? 1 : 0;
+                    return authors.get(index).getUsername();
                 case 2:
                     // Yuntao and Jennifer
-                    return authors.get(0).getUsername() + " and " + authors.get(1).getUsername();
+                    if (creatorIndex == 0) {
+                        index = 1;
+                        index1 = 2;
+                    } else if (creatorIndex == 1) {
+                        index = 0;
+                        index1 = 2;
+                    } else {
+                        index = 0;
+                        index1 = 1;
+                    }
+                    return authors.get(index).getUsername() + " and " + authors.get(index1).getUsername();
                 default:
                     // Yuntao and 2+
-                    return authors.get(0).getUsername() + " and " + Integer.toString(authors.size() - 1) + " +";
+                    index = (creatorIndex == 0) ? 1 : 0;
+                    return authors.get(index).getUsername() + " and " + Integer.toString(authors.size() - 1) + " +";
             }
         } else {
-            authors.remove(creator);
-            switch (authors.size()) {
+            switch (authors.size() - offset) {
                 case 0:
                     return creator.getUsername();
                 case 1:
-                    return creator.getUsername() + " and " + authors.get(0).getUsername();
+                    index = (creatorIndex == 0) ? 1 : 0;
+                    return creator.getUsername() + " and " + authors.get(index).getUsername();
                 default:
                     return creator.getUsername() + " and " + Integer.toString(authors.size()) + " +";
             }
@@ -70,5 +85,20 @@ public class NoteUtils {
         CharSequence sharing = NoteUtils.getSharingString(note);
         CharSequence[] strs = {date, sharing};
         return TextUtils.join(NoteUtils.delimiter, strs);
+    }
+
+    public static boolean canViewerEdit(Note note) {
+        ParseUser user = ParseUser.getCurrentUser();
+        if (user == note.getCreator() || note.getAuthors().contains(user)) {
+            return true;
+        }
+        return false;
+    }
+
+    public static void deleteNote(Note note) throws ParseException {
+        if (note.getObjectId() != null) {
+            note.deleteEventually();
+        }
+        note.unpin(HomeNoteApplication.NOTE_GROUP_NAME);
     }
 }

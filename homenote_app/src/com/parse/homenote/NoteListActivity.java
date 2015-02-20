@@ -63,7 +63,7 @@ public class NoteListActivity extends Activity {
 		ParseQueryAdapter.QueryFactory<Note> factory = new ParseQueryAdapter.QueryFactory<Note>() {
 			public ParseQuery<Note> create() {
 				ParseQuery<Note> queryLocal = Note.getQueryIncludeLastSnippet();
-                //queryLocal.whereEqualTo("authors", ParseUser.getCurrentUser());
+                queryLocal.whereEqualTo("authors", ParseUser.getCurrentUser());
                 queryLocal.orderByDescending("createdAt");
                 queryLocal.fromLocalDatastore();
                 return queryLocal;

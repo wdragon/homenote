@@ -23,7 +23,9 @@ public class Note extends ParseObject {
 		put("creator", currentUser);
 	}
 
-    public void setAuthors(ArrayList<ParseUser> authors) { put("authors", authors); }
+    public void setAuthors(ArrayList<ParseUser> authors) {
+        put("authors", authors);
+    }
 
     public ArrayList<ParseUser> getAuthors() { return (ArrayList<ParseUser>)get("authors"); }
 
