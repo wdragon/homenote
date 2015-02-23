@@ -14,7 +14,7 @@
     <string name="error_name">enter a username</string>
     <string name="error_password">enter a password</string>
     <string name="password_mismatch">enter the same password twice</string>
-    <string name="todo_prompt">Enter note details:</string>
+    <string name="note_prompt">Enter note details:</string>
     <string name="action_camera">Photo</string>
     <string name="action_save">Save</string>
     <string name="action_share">Share</string>
@@ -25,7 +25,7 @@
     <string name="action_logout">Log Out</string>
     <string name="action_login">Log In</string>
     <string name="login_title">Please log in or sign up to sync your notes to your account.</string>
-    <string name="no_items">No items, click + to started adding notes.</string>
+    <string name="no_items">Click + to started adding notes.</string>
     <string name="not_logged_in">Not logged in</string>
     <string name="logged_in">Welcome, %1$s</string>
 </resources>

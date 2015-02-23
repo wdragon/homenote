@@ -1,21 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:paddingLeft="@dimen/activity_horizontal_padding"
+    android:paddingRight="@dimen/activity_horizontal_padding"
+    android:background="@color/note_bg"
     android:orientation="vertical" >
 
     <TextView
-        android:layout_width="wrap_content"
+        android:id="@+id/notePrompt"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_weight="1"
+        android:gravity="center"
+        android:textAlignment="center"
         android:textSize="18sp"
-        android:text="@string/todo_prompt" />
+        android:text="@string/note_prompt"
+        android:paddingTop="@dimen/note_item_padding_top_bottom"
+        android:paddingBottom="@dimen/note_item_padding_top_bottom" />
 
     <ListView
             android:id="@+id/snippetList"
             android:layout_width="fill_parent"
             android:layout_height="match_parent"
+            android:layout_below="@+id/notePrompt"
             android:divider="@null"
+            android:background="@drawable/bg_parent"
             android:descendantFocusability="beforeDescendants" />
 
-</LinearLayout>
+</RelativeLayout>

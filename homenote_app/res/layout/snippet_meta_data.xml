@@ -8,13 +8,13 @@
         android:layout_alignParentLeft="true"
         android:layout_height="wrap_content"
         android:textColor="@color/timestamp"
-        android:textSize="@dimen/note_item_meta_data"
+        android:textSize="@dimen/note_item_meta_data_font"
         android:layout_toLeftOf="@+id/snippet_sharing" />
 
     <TextView
         android:layout_width="96dp"
         android:layout_height="wrap_content"
         android:layout_alignParentRight="true"
-        android:textSize="@dimen/note_item_meta_data" />
+        android:textSize="@dimen/note_item_meta_data_font" />
 
 </LinearLayout>

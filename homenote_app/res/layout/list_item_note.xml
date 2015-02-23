@@ -7,10 +7,12 @@
     <LinearLayout
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
-        android:layout_marginLeft="@dimen/note_item_margin"
-        android:layout_marginRight="@dimen/note_item_margin"
         android:layout_marginTop="@dimen/note_item_margin"
-        android:layout_marginBottom="@dimen/note_item_margin"
+        android:paddingTop="@dimen/note_item_padding_top_bottom"
+        android:paddingBottom="@dimen/note_item_padding_top_bottom"
+        android:paddingLeft="@dimen/note_item_padding_left_right"
+        android:paddingRight="@dimen/note_item_padding_left_right"
+        android:background="@drawable/bg_parent_rounded_corner"
         android:orientation="vertical" >
 
         <com.parse.ParseImageView
@@ -20,6 +22,7 @@
             android:layout_margin="0dp"
             android:paddingLeft="@dimen/note_item_padding_left_right"
             android:paddingRight="@dimen/note_item_padding_left_right"
+            android:paddingBottom="@dimen/note_component_padding"
             android:cropToPadding="false"
             android:adjustViewBounds="true"
             android:scaleType="center"
@@ -30,25 +33,22 @@
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:fontFamily="sans-serif"
-            android:paddingLeft="@dimen/note_item_status_pad_left_right"
-            android:paddingRight="@dimen/note_item_status_pad_left_right"
             android:textSize="20sp"
             android:layout_alignParentLeft="true"
+            android:paddingBottom="@dimen/note_component_padding"
             android:ellipsize="end"
             android:maxLines="3" />
 
         <LinearLayout
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:paddingLeft="@dimen/note_item_padding_left_right"
-            android:paddingRight="@dimen/note_item_padding_left_right" >
+            android:orientation="horizontal">
             <TextView
                 android:id="@+id/note_meta_data"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:textColor="@color/timestamp"
-                android:textSize="@dimen/note_item_meta_data" />
+                android:textSize="@dimen/note_item_meta_data_font" />
         </LinearLayout>
 
     </LinearLayout>

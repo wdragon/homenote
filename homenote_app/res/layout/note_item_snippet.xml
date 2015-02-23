@@ -2,31 +2,28 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:layout_width="match_parent"
               android:layout_height="match_parent"
-              android:background="@color/note_bg"
               android:orientation="vertical" >
 
     <LinearLayout
             android:layout_width="fill_parent"
             android:layout_height="fill_parent"
-            android:layout_marginLeft="@dimen/note_item_margin"
-            android:layout_marginRight="@dimen/note_item_margin"
-            android:layout_marginTop="@dimen/note_item_margin"
-            android:orientation="vertical"
+            android:paddingTop="@dimen/note_item_padding_top_bottom"
             android:paddingBottom="@dimen/note_item_padding_top_bottom"
-            android:paddingTop="@dimen/note_item_padding_top_bottom" >
+            android:paddingLeft="@dimen/note_item_padding_left_right"
+            android:paddingRight="@dimen/note_item_padding_left_right"
+            android:orientation="vertical" >
 
         <LinearLayout
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:paddingLeft="@dimen/note_item_padding_left_right"
-                android:paddingRight="@dimen/note_item_padding_left_right" >
+                android:orientation="horizontal" >
             <TextView
                     android:id="@+id/snippet_meta_data"
                     android:layout_width="fill_parent"
                     android:layout_height="wrap_content"
+                    android:paddingBottom="@dimen/note_component_padding"
                     android:textColor="@color/timestamp"
-                    android:textSize="@dimen/note_item_meta_data" />
+                    android:textSize="@dimen/note_item_meta_data_font" />
         </LinearLayout>
 
         <com.parse.ParseImageView
@@ -36,6 +33,7 @@
                 android:layout_margin="0dp"
                 android:paddingLeft="@dimen/note_item_padding_left_right"
                 android:paddingRight="@dimen/note_item_padding_left_right"
+                android:paddingBottom="@dimen/note_component_padding"
                 android:cropToPadding="false"
                 android:adjustViewBounds="true"
                 android:scaleType="fitCenter"
@@ -45,10 +43,7 @@
             android:id="@+id/snippet_text"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:paddingBottom="5dp"
-            android:paddingLeft="@dimen/note_item_status_pad_left_right"
-            android:paddingRight="@dimen/note_item_status_pad_left_right"
-            android:paddingTop="@dimen/note_item_status_pad_top" />
+            android:paddingBottom="5dp" />
 
     </LinearLayout>
 
