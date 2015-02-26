@@ -15,6 +15,7 @@ import java.util.List;
 public class NewNoteActivity extends Activity {
 
 	private Note note;
+    private ArrayList<NoteSnippet> dirtySnippets;
 
     public void setNote(Note note_) {
         note = note_;
@@ -22,6 +23,15 @@ public class NewNoteActivity extends Activity {
 
     public Note getNote() {
         return note;
+    }
+
+    public void addDirtySnippet(NoteSnippet snippet) {
+        if (snippet == null)
+            return;
+        if (dirtySnippets == null)
+            dirtySnippets = new ArrayList<>();
+        if (!dirtySnippets.contains(snippet))
+            dirtySnippets.add(snippet);
     }
 
     private Fragment getFragment() {
@@ -47,29 +57,48 @@ public class NewNoteActivity extends Activity {
         );
     }
 
-    public void commitView() {
+    public boolean isNoteModified() {
+        if (dirtySnippets != null && dirtySnippets.size() > 0) {
+            return true;
+        }
         if (note != null && note.isDraft()) {
-            note.pinInBackground(HomeNoteApplication.NOTE_GROUP_NAME,
-                    new SaveCallback() {
-                        @Override
-                        public void done(ParseException e) {
-                            if (isFinishing()) {
-                                return;
-                            }
-                            if (e == null) {
-                                setResult(Activity.RESULT_OK);
-                                finish();
-                            } else {
-                                Toast.makeText(getApplicationContext(),
-                                        "Error saving: " + e.getMessage(),
-                                        Toast.LENGTH_LONG).show();
-                            }
-                        }
-                    }
-            );
-        } else {
-            setResult(Activity.RESULT_OK);
-            finish();
+            return true;
+        }
+        return false;
+    }
+
+    public void saveNote(boolean finishView) {
+        boolean hasError = false;
+        if (dirtySnippets != null) {
+            try {
+                NoteSnippet.pinAll(HomeNoteApplication.NOTE_GROUP_NAME, dirtySnippets);
+            } catch (ParseException e) {
+                hasError = true;
+                Toast.makeText(getApplicationContext(),
+                        "Error saving note: " + e.getMessage(),
+                        Toast.LENGTH_LONG).show();
+            }
+            dirtySnippets.clear();
+        }
+        if (note != null && note.isDraft()) {
+            try {
+                note.pin(HomeNoteApplication.NOTE_GROUP_NAME);
+            } catch (ParseException e) {
+                hasError = true;
+                Toast.makeText(getApplicationContext(),
+                        "Error saving note: " + e.getMessage(),
+                        Toast.LENGTH_LONG).show();
+            }
+        }
+
+        if (!hasError) {
+            if (isFinishing()) {
+                return;
+            }
+            if (finishView) {
+                setResult(Activity.RESULT_OK);
+                finish();
+            }
         }
     }
 

@@ -51,9 +51,7 @@ public class Note extends ParseObject {
     public NoteSnippet createNewLastSnippet() {
         NoteSnippet last = new NoteSnippet(this);
         last.updateContent(0, null, NoteSnippetContentType.TEXT.ordinal());
-        last.setDraft(true);
         put("lastSnippet", last);
-        setDraft(true);
         return last;
     }
 

@@ -1,6 +1,5 @@
 package com.parse.homenote;
 
-import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Fragment;
@@ -26,7 +25,6 @@ import org.json.JSONException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.parse.homenote.NoteSnippetContentOp.*;
 import static com.parse.homenote.NoteSnippetContentType.*;
 
 /**
@@ -49,7 +47,7 @@ public class NewNoteFragment extends Fragment {
                              Bundle SavedInstanceState) {
         this.inflater = inflater;
         final View v = inflater.inflate(R.layout.fragment_new_note, parent, false);
-        final NewNoteActivity activity = (NewNoteActivity)getActivity();
+        final NewNoteActivity activity = getNoteActivity();
 
         setHasOptionsMenu(true);
         NoteViewUtils.setUpBackButton(activity);
@@ -127,6 +125,7 @@ public class NewNoteFragment extends Fragment {
             }
         } else {
             Note note = new Note();
+            note.setDraft(true);
             note.setUuidString();
             note.setCreator(ParseUser.getCurrentUser());
             ArrayList<ParseUser> authors = new ArrayList<ParseUser>();
@@ -135,13 +134,8 @@ public class NewNoteFragment extends Fragment {
             activity.setNote(note);
 
             NoteSnippet snippet = note.createNewLastSnippet();
-            try {
-                snippet.pin(HomeNoteApplication.NOTE_GROUP_NAME);
-            } catch (ParseException ex) {
-                Toast.makeText(activity,
-                        "Could not create a new note: " + ex.getMessage(),
-                        Toast.LENGTH_LONG).show();
-            }
+            dirtySnippet(snippet);
+            activity.saveNote(false);
             setupSnippetsView(note, v);
         }
 
@@ -153,13 +147,12 @@ public class NewNoteFragment extends Fragment {
         inflater1.inflate(R.menu.individual_note, menu);
         this.menu = menu;
 
-        NewNoteActivity activity = (NewNoteActivity)getActivity();
-        updateActions(activity.getNote());
+        updateActions(getNote());
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        NewNoteActivity activity = (NewNoteActivity)getActivity();
+        NewNoteActivity activity = getNoteActivity();
 
         if (item.getItemId() == R.id.action_camera) {
             InputMethodManager imm = (InputMethodManager) getActivity()
@@ -176,7 +169,14 @@ public class NewNoteFragment extends Fragment {
 
         if (item.getItemId() == android.R.id.home || item.getItemId() == R.id.action_save) {
             snippetListAdapter.save();
-            activity.commitView();
+
+            if (activity.isNoteModified())
+                startSaving();
+
+            boolean finishView = (item.getItemId() == android.R.id.home);
+            activity.saveNote(finishView);
+
+            endSaving();
         }
 
         if (item.getItemId() == R.id.action_share) {
@@ -188,8 +188,8 @@ public class NewNoteFragment extends Fragment {
             // immediately be excluded from query results.
             try {
                 NoteUtils.deleteNote(activity.getNote());
-                getActivity().setResult(Activity.RESULT_OK);
-                getActivity().finish();
+                activity.setResult(Activity.RESULT_OK);
+                activity.finish();
             } catch (ParseException e) {
                 Toast.makeText(activity,
                         "Error deleting note: " + e.getMessage(),
@@ -200,8 +200,33 @@ public class NewNoteFragment extends Fragment {
         return super.onOptionsItemSelected(item);
     }
 
+    private void startSaving() {
+        Toast.makeText(getActivity(),
+                "Saving...",
+                Toast.LENGTH_SHORT).show();
+    }
+
+    private void endSaving() {
+        Toast.makeText(getActivity(),
+                "Note saved.",
+                Toast.LENGTH_SHORT).show();
+    }
+
+    private NewNoteActivity getNoteActivity() {
+        return ((NewNoteActivity)getActivity());
+    }
+
+    private Note getNote() {
+        return getNoteActivity().getNote();
+    }
+
+    private void dirtySnippet(NoteSnippet snippet) {
+        snippet.setDraft(true);
+        getNoteActivity().addDirtySnippet(snippet);
+    }
+
     private void toggleCheckbox(boolean forceCreate) {
-        NewNoteActivity activity = ((NewNoteActivity)getActivity());
+        NewNoteActivity activity = getNoteActivity();
         Note note = activity.getNote();
         NoteSnippet snippet = null;
         snippetListAdapter.save();
@@ -215,8 +240,7 @@ public class NewNoteFragment extends Fragment {
                 } else {
                     snippet.insertContent(index+1, "", NoteSnippetContentType.CHECK_BOX_OFF.ordinal());
                 }
-                snippet.setDraft(true);
-                note.setDraft(true);
+                dirtySnippet(snippet);
                 snippetListAdapter.notifyDataSetChanged();
                 return;
             }
@@ -228,8 +252,7 @@ public class NewNoteFragment extends Fragment {
         }
         // Add a checkbox
         snippet.updateContent(snippet.size(), "", NoteSnippetContentType.CHECK_BOX_OFF.ordinal());
-        snippet.setDraft(true);
-        note.setDraft(true);
+        dirtySnippet(snippet);
         snippetListAdapter.notifyDataSetChanged();
     }
 
@@ -280,7 +303,7 @@ public class NewNoteFragment extends Fragment {
 
     protected void shareNote(final ParseUser from, final ParseUser to) {
 
-        final NewNoteActivity activity = ((NewNoteActivity)getActivity());
+        final NewNoteActivity activity = getNoteActivity();
         final Note note = activity.getNote();
         final NoteSnippet lastSnippet = note.getLastSnippet();
         ArrayList<ParseUser> authors = note.getAuthors();
@@ -347,7 +370,7 @@ public class NewNoteFragment extends Fragment {
 
     protected void setupSnippetsView(final Note note, final View v) {
         final boolean fromLocal = (note.getObjectId() == null);
-        final NewNoteActivity activity = (NewNoteActivity) getActivity();
+        final NewNoteActivity activity = getNoteActivity();
         ParseQueryAdapter.QueryFactory<NoteSnippet> factory = new ParseQueryAdapter.QueryFactory<NoteSnippet>() {
             public ParseQuery<NoteSnippet> create() {
                 ParseQuery<NoteSnippet> query = NoteSnippet.getQuery();
@@ -447,26 +470,41 @@ public class NewNoteFragment extends Fragment {
     private class NoteSnippetListAdapter extends ParseQueryAdapter<NoteSnippet> {
 
         private ViewHolder lastSnippetVH = null;
+        private ArrayList<ViewHolder> dirtyViews = null;
 
         public NoteSnippetListAdapter(Context context, QueryFactory<NoteSnippet> queryFactory) {
             super(context, queryFactory);
         }
 
-        private Note getNote() {
-            return ((NewNoteActivity) getContext()).getNote();
+        /**
+         * Snippet view is different from the snippet data
+         * @param holder
+         */
+        private void addDirtyView(ViewHolder holder) {
+            if (holder == null)
+                return;
+            if (dirtyViews == null)
+                dirtyViews = new ArrayList<>();
+            if (!dirtyViews.contains(holder))
+                dirtyViews.add(holder);
         }
 
         public void save() {
-            if (lastSnippetVH != null && lastSnippetVH.subViews != null) {
-                for (SnippetSubView subView : lastSnippetVH.subViews) {
-                    if (subView != null && subView.edited == true) {
-                        // TODO update the proper content
-                        lastSnippetVH.snippet.updateContent(subView.index, subView.getContent(), subView.type);
-                        lastSnippetVH.snippet.setDraft(true);
-                        getNote().setDraft(true);
-                        subView.edited = false;
+            addDirtyView(lastSnippetVH);
+            if (dirtyViews != null) {
+                for(ViewHolder holder : dirtyViews) {
+                    if (holder != null && holder.subViews != null) {
+                        for (SnippetSubView subView : holder.subViews) {
+                            if (subView != null && subView.edited == true) {
+                                // TODO update the proper content
+                                holder.snippet.updateContent(subView.index, subView.getContent(), subView.type);
+                                dirtySnippet(holder.snippet);
+                                subView.edited = false;
+                            }
+                        }
                     }
                 }
+                dirtyViews.clear();
             }
         }
 
@@ -474,8 +512,7 @@ public class NewNoteFragment extends Fragment {
             if (subView != null) {
                 save();
                 holder.snippet.deleteContent(subView.index);
-                holder.snippet.setDraft(true);
-                getNote().setDraft(true);
+                dirtySnippet(holder.snippet);
                 snippetListAdapter.notifyDataSetChanged();
             }
         }
@@ -570,6 +607,7 @@ public class NewNoteFragment extends Fragment {
                         subView.type = NoteSnippetContentType.CHECK_BOX_OFF.ordinal();
                     }
                     subView.edited = true;
+                    addDirtyView(holder);
                 }
             });
 
