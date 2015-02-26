@@ -24,6 +24,8 @@
         android:id="@+id/note_list_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:dividerHeight="@dimen/note_item_margin"
+        android:listSelector="@color/note_bg"
         android:layout_below="@id/loggedin_info"
         android:divider="@null" >
     </ListView>

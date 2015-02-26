@@ -5,13 +5,13 @@
               android:orientation="vertical" >
 
     <LinearLayout
-            android:layout_width="fill_parent"
-            android:layout_height="fill_parent"
-            android:paddingTop="@dimen/note_item_padding_top_bottom"
-            android:paddingBottom="@dimen/note_item_padding_top_bottom"
-            android:paddingLeft="@dimen/note_item_padding_left_right"
-            android:paddingRight="@dimen/note_item_padding_left_right"
-            android:orientation="vertical" >
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:paddingTop="@dimen/note_item_padding_top_bottom"
+        android:paddingBottom="@dimen/note_item_padding_top_bottom"
+        android:paddingLeft="@dimen/note_item_padding_left_right"
+        android:paddingRight="@dimen/note_item_padding_left_right"
+        android:orientation="vertical" >
 
         <LinearLayout
                 android:layout_width="fill_parent"
@@ -39,11 +39,12 @@
                 android:scaleType="fitCenter"
                 android:visibility="invisible" />
 
-        <EditText
-            android:id="@+id/snippet_text"
+        <LinearLayout
+            android:id="@+id/snippet_linear_layout"
             android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:paddingBottom="5dp" />
+            android:layout_height="fill_parent"
+            android:orientation="vertical" >
+        </LinearLayout>
 
     </LinearLayout>
 

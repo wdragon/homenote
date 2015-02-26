@@ -359,6 +359,7 @@ public class NoteListActivity extends Activity {
 	private void loadFromParse() {
         // Authored notes
         // TODO: load the real last note
+        // TODO: flush the local cache
         syncFromParseCount = 0;
         syncFromParseTotal = 0;
 
@@ -459,10 +460,11 @@ public class NoteListActivity extends Activity {
 			}
             NoteSnippet snippet = note.getLastSnippet();
 			TextView todoTitle = holder.noteTitle;
-            if (snippet.getTitle() == null || snippet.getTitle().length() == 0) {
+            if (snippet.isEmpty()) {
                 todoTitle.setVisibility(View.GONE);
             } else {
-                todoTitle.setText(snippet.getTitle());
+                // TODO, render the snippet properly
+                todoTitle.setText(snippet.getContents().get(0));
                 todoTitle.setVisibility(View.VISIBLE);
                 if (note.isDraft()) {
                     todoTitle.setTypeface(null, Typeface.ITALIC);

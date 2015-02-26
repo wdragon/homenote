@@ -17,6 +17,7 @@
     <string name="note_prompt">Enter note details:</string>
     <string name="action_camera">Photo</string>
     <string name="action_save">Save</string>
+    <string name="action_checkbox">Todo</string>
     <string name="action_share">Share</string>
     <string name="cancel">Cancel</string>
     <string name="action_discard">Delete</string>

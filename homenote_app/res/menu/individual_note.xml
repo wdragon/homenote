@@ -9,6 +9,13 @@
     </item>
 
     <item
+        android:id="@+id/action_checkbox"
+        android:icon="@drawable/ic_action_checkbox"
+        android:showAsAction="ifRoom"
+        android:title="@string/action_checkbox">
+    </item>
+
+    <item
         android:id="@+id/action_save"
         android:icon="@drawable/ic_action_save"
         android:showAsAction="ifRoom"
