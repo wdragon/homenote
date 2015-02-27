@@ -19,6 +19,11 @@ public class NoteSnippet extends ParseObject {
 
     ArrayList<NoteSnippetContentOp> lastRoundOps;
 
+    public static class ContentEntry {
+        int index;
+        int type;
+    }
+
     public NoteSnippet() {
     }
 
@@ -37,6 +42,36 @@ public class NoteSnippet extends ParseObject {
 
     public ArrayList<Integer> getContentTypes() {
         return (ArrayList<Integer>)get(CONTENT_TYPE_KEY);
+    }
+
+    public ContentEntry getNextValidContentEntry(int index) {
+        int start = index + 1;
+        ArrayList<Integer> contentTypes = getContentTypes();
+        while (start < size() && start > -1) {
+            if (contentTypes.get(start) != NoteSnippetContentType.DELETED.ordinal()) {
+                ContentEntry ce = new ContentEntry();
+                ce.index = start;
+                ce.type = contentTypes.get(start);
+                return ce;
+            }
+            start ++;
+        }
+        return null;
+    }
+
+    public ContentEntry getPreviousValidContentEntry(int index) {
+        int start = index - 1;
+        ArrayList<Integer> contentTypes = getContentTypes();
+        while (start > -1 && start < size()) {
+            if (contentTypes.get(start) != NoteSnippetContentType.DELETED.ordinal()) {
+                ContentEntry ce = new ContentEntry();
+                ce.index = start;
+                ce.type = contentTypes.get(start);
+                return ce;
+            }
+            start --;
+        }
+        return null;
     }
 
     public ArrayList<Long> getContentUpdatedTimes() { return (ArrayList<Long>)get(CONTENT_UPDATE_TIME_KEY); }

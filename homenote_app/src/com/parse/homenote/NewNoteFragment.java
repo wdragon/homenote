@@ -239,10 +239,14 @@ public class NewNoteFragment extends Fragment {
             snippet = snippetListAdapter.lastSnippetVH.snippet;
             if (snippetListAdapter.lastSnippetVH.activeSubView > -1) {
                 int index = snippetListAdapter.lastSnippetVH.activeSubView;
+                // TODO: use snippet data instead of view data
                 SnippetSubView subView = snippetListAdapter.lastSnippetVH.subViews.get(index);
                 if (subView instanceof SnippetCheckedTextSubView && forceCreate == false) {
-                    snippet.updateContent(index, subView.getContent(), NoteSnippetContentType.TEXT.ordinal());
+                    snippet.updateExistingContentType(index, NoteSnippetContentType.TEXT.ordinal());
                     note.setCursorPosition(snippet, index, ((SnippetCheckedTextSubView) subView).text.getSelectionStart());
+                } else if (subView instanceof SnippetTextSubView && forceCreate == false && ((SnippetTextSubView) subView).text.length() == 0) {
+                    snippet.updateExistingContentType(index, NoteSnippetContentType.CHECK_BOX_OFF.ordinal());
+                    note.setCursorPosition(snippet, index, 0);
                 } else {
                     snippet.insertContent(index+1, textForNewCheckBox, NoteSnippetContentType.CHECK_BOX_OFF.ordinal());
                     note.setCursorPosition(snippet, index+1, 0);
@@ -258,6 +262,11 @@ public class NewNoteFragment extends Fragment {
             }
         }
         // Add a checkbox
+        int index = snippet.size();
+        NoteSnippet.ContentEntry ce = snippet.getPreviousValidContentEntry(index);
+        if (ce != null && ce.type == NoteSnippetContentType.TEXT.ordinal() && snippet.getContents().get(ce.index).length() == 0) {
+            index = ce.index;
+        }
         note.setCursorPosition(snippet, snippet.size(), 0);
         snippet.updateContent(snippet.size(), "", NoteSnippetContentType.CHECK_BOX_OFF.ordinal());
         dirtySnippet(snippet);
@@ -528,23 +537,23 @@ public class NewNoteFragment extends Fragment {
 
         private void mergeToPreviousSubView(ViewHolder holder, SnippetTextSubView subView) {
             if (subView != null && subView.index > 0) {
-                int preSubViewIdx = subView.index - 1;
-                SnippetSubView preSubView = holder.subViews.get(preSubViewIdx);
-                while (preSubView == null && preSubViewIdx > 0) {
-                    preSubViewIdx --;
-                    preSubView = holder.subViews.get(preSubViewIdx);
-                }
-                if (preSubView instanceof SnippetSubViewWithText) {
-                    save();
-                    getNote().setCursorPosition(holder.snippet, preSubViewIdx, ((SnippetSubViewWithText) preSubView).text.length());
-                    String curContent = holder.snippet.getContents().get(subView.index);
-                    if (curContent.length() > 0) {
-                        String preContent = holder.snippet.getContents().get(preSubViewIdx);
-                        holder.snippet.updateExistingContent(preSubViewIdx, preContent.concat(curContent));
+                save();
+                NoteSnippet.ContentEntry ce = holder.snippet.getPreviousValidContentEntry(subView.index);
+                if (ce != null) {
+                    int preContentIdx = ce.index;
+                    if (ce.type == NoteSnippetContentType.TEXT.ordinal() ||
+                            ce.type == NoteSnippetContentType.CHECK_BOX_OFF.ordinal() ||
+                            ce.type == NoteSnippetContentType.CHECK_BOX_ON.ordinal()) {
+                        String preContent = holder.snippet.getContents().get(preContentIdx);
+                        getNote().setCursorPosition(holder.snippet, preContentIdx, preContent.length());
+                        String curContent = holder.snippet.getContents().get(subView.index);
+                        if (curContent.length() > 0) {
+                            holder.snippet.updateExistingContent(preContentIdx, preContent.concat(curContent));
+                        }
+                        holder.snippet.deleteContent(subView.index);
+                        dirtySnippet(holder.snippet);
+                        snippetListAdapter.notifyDataSetChanged();
                     }
-                    holder.snippet.deleteContent(subView.index);
-                    dirtySnippet(holder.snippet);
-                    snippetListAdapter.notifyDataSetChanged();
                 }
             }
         }
