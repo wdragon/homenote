@@ -114,6 +114,8 @@ public class NoteSnippet extends ParseObject {
     }
 
     public void insertContent(int idx, String content, int contentType) {
+        if (content == null)
+            content = "";
         if (size() <= idx) {
             updateContent(idx, content, contentType);
             return;
@@ -134,6 +136,8 @@ public class NoteSnippet extends ParseObject {
     }
 
     public void updateContent(int idx, String content, int contentType) {
+        if (content == null)
+            content = "";
         NoteSnippetContentOp op = NoteSnippetContentOp.UPDATE;
         ArrayList<String> contents = getContents();
         ArrayList<Integer> contentTypes = getContentTypes();
@@ -187,14 +191,14 @@ public class NoteSnippet extends ParseObject {
     }
 
     public void sanitizeData() {
-        if (lastRoundOps != null) {
+        if (size() > 0) {
             ArrayList<String> contents = getContents();
             ArrayList<Integer> contentTypes = getContentTypes();
             ArrayList<Long> contentTs = getContentUpdatedTimes();
             boolean updated = false;
 
-            for (int i=lastRoundOps.size()-1; i>-1; i--) {
-                if (lastRoundOps.get(i) == NoteSnippetContentOp.DELETE) {
+            for (int i=contentTypes.size()-1; i>-1; i--) {
+                if (contentTypes.get(i) == NoteSnippetContentType.DELETED.ordinal()) {
                     contents.remove(i);
                     contentTypes.remove(i);
                     contentTs.remove(i);

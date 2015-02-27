@@ -164,11 +164,12 @@ public class NewNoteFragment extends Fragment {
         }
 
         if (item.getItemId() == R.id.action_checkbox) {
-            toggleCheckbox(false);
+            toggleCheckbox();
         }
 
         if (item.getItemId() == android.R.id.home || item.getItemId() == R.id.action_save) {
             snippetListAdapter.save();
+            snippetListAdapter.saveCursorPosition();
 
             if (activity.isNoteModified())
                 startSaving();
@@ -225,7 +226,11 @@ public class NewNoteFragment extends Fragment {
         getNoteActivity().addDirtySnippet(snippet);
     }
 
-    private void toggleCheckbox(boolean forceCreate) {
+    private void toggleCheckbox() {
+        toggleCheckbox(false, "");
+    }
+
+    private void toggleCheckbox(boolean forceCreate, String textForNewCheckBox) {
         NewNoteActivity activity = getNoteActivity();
         Note note = activity.getNote();
         NoteSnippet snippet = null;
@@ -237,8 +242,10 @@ public class NewNoteFragment extends Fragment {
                 SnippetSubView subView = snippetListAdapter.lastSnippetVH.subViews.get(index);
                 if (subView instanceof SnippetCheckedTextSubView && forceCreate == false) {
                     snippet.updateContent(index, subView.getContent(), NoteSnippetContentType.TEXT.ordinal());
+                    note.setCursorPosition(snippet, index, ((SnippetCheckedTextSubView) subView).text.getSelectionStart());
                 } else {
-                    snippet.insertContent(index+1, "", NoteSnippetContentType.CHECK_BOX_OFF.ordinal());
+                    snippet.insertContent(index+1, textForNewCheckBox, NoteSnippetContentType.CHECK_BOX_OFF.ordinal());
+                    note.setCursorPosition(snippet, index+1, 0);
                 }
                 dirtySnippet(snippet);
                 snippetListAdapter.notifyDataSetChanged();
@@ -251,6 +258,7 @@ public class NewNoteFragment extends Fragment {
             }
         }
         // Add a checkbox
+        note.setCursorPosition(snippet, snippet.size(), 0);
         snippet.updateContent(snippet.size(), "", NoteSnippetContentType.CHECK_BOX_OFF.ordinal());
         dirtySnippet(snippet);
         snippetListAdapter.notifyDataSetChanged();
@@ -433,27 +441,28 @@ public class NewNoteFragment extends Fragment {
         abstract String getContent();
     }
 
-    private class SnippetTextSubView extends SnippetSubView {
+    private abstract class SnippetSubViewWithText extends SnippetSubView {
         EditText text;
         String getContent() {
             return text.getText().toString();
         }
-        SnippetTextSubView(int index, int type, View view, EditText text) {
+        SnippetSubViewWithText(int index, int type, View view, EditText text) {
             super(index, type, view);
             this.text = text;
         }
     }
 
-    private class SnippetCheckedTextSubView extends SnippetSubView {
-        CheckBox box;
-        EditText text;
-        String getContent() {
-            return text.getText().toString();
+    private class SnippetTextSubView extends SnippetSubViewWithText {
+        SnippetTextSubView(int index, int type, View view, EditText text) {
+            super(index, type, view, text);
         }
+    }
+
+    private class SnippetCheckedTextSubView extends SnippetSubViewWithText {
+        CheckBox box;
         SnippetCheckedTextSubView(int index, int type, View view, CheckBox box, EditText text) {
-            super(index, type, view);
+            super(index, type, view, text);
             this.box = box;
-            this.text = text;
         }
     }
 
@@ -508,22 +517,43 @@ public class NewNoteFragment extends Fragment {
             }
         }
 
-        private void deleteSubView(ViewHolder holder, SnippetSubView subView) {
-            if (subView != null) {
-                save();
-                holder.snippet.deleteContent(subView.index);
-                dirtySnippet(holder.snippet);
-                snippetListAdapter.notifyDataSetChanged();
+        public void saveCursorPosition() {
+            if (lastSnippetVH != null && lastSnippetVH.activeSubView != -1) {
+                SnippetSubView subView = lastSnippetVH.subViews.get(lastSnippetVH.activeSubView);
+                if (subView instanceof SnippetSubViewWithText) {
+                    getNote().setCursorPosition(lastSnippetVH.snippet, lastSnippetVH.activeSubView, ((SnippetSubViewWithText) subView).text.getSelectionStart());
+                }
+            }
+        }
+
+        private void mergeToPreviousSubView(ViewHolder holder, SnippetTextSubView subView) {
+            if (subView != null && subView.index > 0) {
+                int preSubViewIdx = subView.index - 1;
+                SnippetSubView preSubView = holder.subViews.get(preSubViewIdx);
+                while (preSubView == null && preSubViewIdx > 0) {
+                    preSubViewIdx --;
+                    preSubView = holder.subViews.get(preSubViewIdx);
+                }
+                if (preSubView instanceof SnippetSubViewWithText) {
+                    save();
+                    getNote().setCursorPosition(holder.snippet, preSubViewIdx, ((SnippetSubViewWithText) preSubView).text.length());
+                    String curContent = holder.snippet.getContents().get(subView.index);
+                    if (curContent.length() > 0) {
+                        String preContent = holder.snippet.getContents().get(preSubViewIdx);
+                        holder.snippet.updateExistingContent(preSubViewIdx, preContent.concat(curContent));
+                    }
+                    holder.snippet.deleteContent(subView.index);
+                    dirtySnippet(holder.snippet);
+                    snippetListAdapter.notifyDataSetChanged();
+                }
             }
         }
 
         public EditText getCurrentText() {
             if (lastSnippetVH != null && lastSnippetVH.activeSubView > -1) {
                 SnippetSubView subView = lastSnippetVH.subViews.get(lastSnippetVH.activeSubView);
-                if (subView instanceof SnippetCheckedTextSubView) {
-                    return ((SnippetCheckedTextSubView) subView).text;
-                } else if (subView instanceof SnippetTextSubView) {
-                    return ((SnippetTextSubView) subView).text;
+                if (subView instanceof SnippetSubViewWithText) {
+                    return ((SnippetSubViewWithText) subView).text;
                 }
             }
             return null;
@@ -585,11 +615,23 @@ public class NewNoteFragment extends Fragment {
                     if ((event.getAction() == KeyEvent.ACTION_DOWN)) {
                         if (keyCode == KeyEvent.KEYCODE_ENTER) {
                             boolean forceCreate = (tv.getText().toString().trim().length() > 0);
-                            toggleCheckbox(forceCreate);
+                            String textForNewCheckBox = "";
+                            if (forceCreate == true) {
+                                // Take the text after the cursor and put them into the new checkbox
+                                int start = tv.getSelectionStart();
+                                int len = tv.getText().length();
+                                if (start != len) {
+                                    textForNewCheckBox = tv.getText().subSequence(start, len).toString();
+                                    tv.setText(tv.getText().subSequence(0, start));
+                                    subView.edited = true;
+                                    addDirtyView(holder);
+                                }
+                            }
+                            toggleCheckbox(forceCreate, textForNewCheckBox);
                             return true;
                         } else if (keyCode == KeyEvent.KEYCODE_DEL) {
-                            if (tv.getText().toString().length() == 0) {
-                                toggleCheckbox(false);
+                            if (tv.getText().toString().length() == 0 || tv.getSelectionStart() == 0) {
+                                toggleCheckbox();
                                 return true;
                             }
                         }
@@ -672,8 +714,8 @@ public class NewNoteFragment extends Fragment {
                     TextView tv = (TextView) v;
                     if ((event.getAction() == KeyEvent.ACTION_DOWN)) {
                         if (keyCode == KeyEvent.KEYCODE_DEL) {
-                            if (tv.getText().toString().length() == 0) {
-                                deleteSubView(holder, subView);
+                            if (tv.getText().toString().length() == 0 || tv.getSelectionStart() == 0) {
+                                mergeToPreviousSubView(holder, subView);
                                 return true;
                             }
                         }
@@ -711,7 +753,7 @@ public class NewNoteFragment extends Fragment {
             NoteSnippetContentType types[] = NoteSnippetContentType.values();
             LinearLayout layout = (LinearLayout) view.findViewById(R.id.snippet_linear_layout);
             layout.removeAllViews();
-            EditText lastEditText = null, editTextToFocus = null;
+            boolean hasCursor = (snippet == getNote().getCursorSnippet());
             for (int i=0; i<contents.size(); i++)
             {
                 NoteSnippetContentOp op = snippet.getContentOp(i);
@@ -753,24 +795,15 @@ public class NewNoteFragment extends Fragment {
                         // TODO: show error message
                         break;
                 }
-
-                switch (op) {
-                    case INSERT:
-                    case UPDATE:
-                    case ADD:
-                        editTextToFocus = editText;
-                        break;
-                    case DELETE:
-                        editTextToFocus = lastEditText;
-                        break;
+                if (hasCursor) {
+                    if (editText != null && i == getNote().getCursorSnippetContentIndex()) {
+                        editText.requestFocus();
+                        int start = getNote().getCursorSnippetContentTextOffset();
+                        if (start == -1)
+                            start = editText.getText().length();
+                        editText.setSelection(start);
+                    }
                 }
-
-                lastEditText = editText;
-            }
-
-            if (editTextToFocus != null) {
-                editTextToFocus.requestFocus();
-                editTextToFocus.setSelection(editTextToFocus.getText().length());
             }
 
             if (snippet.getPhotos() != null) {

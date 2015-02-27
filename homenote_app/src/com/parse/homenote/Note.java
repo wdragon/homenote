@@ -1,6 +1,7 @@
 package com.parse.homenote;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.UUID;
 
 import com.parse.*;
@@ -28,6 +29,43 @@ public class Note extends ParseObject {
     }
 
     public ArrayList<ParseUser> getAuthors() { return (ArrayList<ParseUser>)get("authors"); }
+
+    public NoteSnippet getCursorSnippet() {
+        HashMap<String, Object> cursorPosition = getCursorPosition();
+        if (cursorPosition != null)
+            return (NoteSnippet)cursorPosition.get("snippet");
+        return null;
+    }
+
+    public int getCursorSnippetContentIndex() {
+        HashMap<String, Object> cursorPosition = getCursorPosition();
+        if (cursorPosition != null)
+            return (int)cursorPosition.get("contentIndex");
+        return -1;
+    }
+
+    public int getCursorSnippetContentTextOffset() {
+        HashMap<String, Object> cursorPosition = getCursorPosition();
+        if (cursorPosition != null)
+            return (int)cursorPosition.get("contentTextOffset");
+        return -1;
+    }
+
+    private HashMap<String, Object> getCursorPosition() {
+        return (HashMap<String, Object>)get("cursorPosition");
+    }
+
+    public void setCursorPosition(NoteSnippet snippet, int snippetContentIndex, int snippetContentTextOffset) {
+        HashMap<String, Object> cursorPosition = getCursorPosition();
+        if (cursorPosition == null) {
+            cursorPosition = new HashMap<>();
+        }
+        cursorPosition.put("snippet", snippet);
+        cursorPosition.put("contentIndex", snippetContentIndex);
+        cursorPosition.put("contentTextOffset", snippetContentTextOffset);
+        put("cursorPosition", cursorPosition);
+        setDraft(true);
+    }
 
     public void setUuidString() {
 	    UUID uuid = UUID.randomUUID();
