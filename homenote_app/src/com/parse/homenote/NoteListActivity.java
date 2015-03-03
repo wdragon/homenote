@@ -1,5 +1,6 @@
 package com.parse.homenote;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import android.app.Activity;
@@ -9,6 +10,7 @@ import android.graphics.Typeface;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
+import android.util.AttributeSet;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -19,6 +21,7 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
+import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
@@ -37,10 +40,16 @@ import com.parse.ParseUser;
 import com.parse.SaveCallback;
 import com.parse.ui.ParseLoginBuilder;
 
+import org.w3c.dom.Text;
+
+import static com.parse.homenote.NoteSnippetContentType.*;
+
 public class NoteListActivity extends Activity {
 
 	private static final int LOGIN_ACTIVITY_CODE = 100;
 	private static final int EDIT_ACTIVITY_CODE = 200;
+
+    protected static final int PREVIEW_MAX_LINE = 3;
 
 	// Adapter for the Todos Parse Query
 	private ParseQueryAdapter<Note> noteListAdapter;
@@ -221,7 +230,6 @@ public class NoteListActivity extends Activity {
     private void startSyncAnimation() {
         if (refreshItem != null) {
             if (refreshActionView == null) {
-                LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
                 refreshActionView = (ImageView) inflater.inflate(R.layout.refresh_action_view, null);
             }
             if (clockwiseRefresh == null) {
@@ -445,33 +453,108 @@ public class NoteListActivity extends Activity {
 			super(context, queryFactory);
 		}
 
+        private void addView(ViewHolder holder, View view) {
+            view.setVisibility(View.VISIBLE);
+            holder.viewContainer.addView(view);
+        }
+
+        private void addSeeMore(ViewHolder holder, ViewGroup parent) {
+            if (holder.seeMore == null) {
+                holder.seeMore = (TextView) inflater.inflate(R.layout.note_preview_text_see_more, parent, false);
+            }
+            addView(holder, holder.seeMore);
+        }
+
+        private void setViewText(TextView view, Note note, String text) {
+            view.setText(text);
+            if (note.isDraft()) {
+                view.setTypeface(null, Typeface.ITALIC);
+            } else {
+                view.setTypeface(null, Typeface.NORMAL);
+            }
+        }
+
 		@Override
 		public View getItemView(final Note note, View view, ViewGroup parent) {
 			final ViewHolder holder;
 			if (view == null) {
 				view = inflater.inflate(R.layout.list_item_note, parent, false);
 				holder = new ViewHolder();
-				holder.noteTitle = (TextView) view.findViewById(R.id.note_title);
+                holder.views = new ArrayList<>(PREVIEW_MAX_LINE);
+                for(int i=0; i<PREVIEW_MAX_LINE; i++)
+                    holder.views.add(null);
                 holder.photo = (ParseImageView) view.findViewById(R.id.note_photo);
                 holder.noteMetaData = (TextView) view.findViewById(R.id.note_meta_data);
+                holder.viewContainer = (LinearLayout) view.findViewById(R.id.note_preview_linear_layout);
 				view.setTag(holder);
 			} else {
 				holder = (ViewHolder) view.getTag();
 			}
             NoteSnippet snippet = note.getLastSnippet();
-			TextView todoTitle = holder.noteTitle;
-            if (snippet.isEmpty()) {
-                todoTitle.setVisibility(View.GONE);
-            } else {
-                // TODO, render the snippet properly
-                todoTitle.setText(snippet.getContents().get(0));
-                todoTitle.setVisibility(View.VISIBLE);
-                if (note.isDraft()) {
-                    todoTitle.setTypeface(null, Typeface.ITALIC);
-                } else {
-                    todoTitle.setTypeface(null, Typeface.NORMAL);
+            ArrayList<String> contents = snippet.getContents();
+            ArrayList<Integer> contentTypes = snippet.getContentTypes();
+            NoteSnippetContentType types[] = NoteSnippetContentType.values();
+            holder.viewContainer.removeAllViews();
+            int viewIdx = 0;
+            int lineCount = 0;
+            boolean lastLineEllipsized = false;
+            for (int contentIdx=0; contentIdx<snippet.size(); contentIdx++) {
+                if (lineCount >= PREVIEW_MAX_LINE || viewIdx > PREVIEW_MAX_LINE) {
+                    if (!lastLineEllipsized) {
+                        addSeeMore(holder, parent);
+                    }
+                    break;
+                }
+                int type = contentTypes.get(contentIdx);
+                NoteSnippetContentType t = types[type];
+                NotePreviewSubView cView = holder.views.get(viewIdx);
+                lastLineEllipsized = false;
+                switch (t) {
+                    case TEXT:
+                        if (!(cView instanceof NotePreviewTextSubView)) {
+                            cView = new NotePreviewTextSubView(
+                                    (TextView) inflater.inflate(R.layout.note_preview_text, parent, false));
+                            holder.views.set(viewIdx, cView);
+                        }
+                        TextView text1 = ((NotePreviewTextSubView) cView).text;
+                        setViewText(text1, note, contents.get(contentIdx));
+                        int lineCountAdd = NoteViewUtils.getTextLineCount(text1.getText().toString(), parent.getWidth(), text1.getPaint());
+                        if (lineCount + lineCountAdd > PREVIEW_MAX_LINE) {
+                            text1.setMaxLines(PREVIEW_MAX_LINE - lineCount);
+                            lastLineEllipsized = true;
+                        }
+                        lineCount += lineCountAdd;
+                        break;
+                    case CHECK_BOX_OFF:
+                    case CHECK_BOX_ON:
+                        if (!(cView instanceof NotePreviewCheckedTextSubView)) {
+                            View linearLayout = inflater.inflate(R.layout.note_preview_checkedtext, parent, false);
+                            cView = new NotePreviewCheckedTextSubView(
+                                    linearLayout,
+                                    (TextView) linearLayout.findViewById(R.id.note_preview_checkbox_text),
+                                    (CheckBox) linearLayout.findViewById(R.id.note_preview_checkbox));
+                            holder.views.set(viewIdx, cView);
+                        }
+                        ((NotePreviewCheckedTextSubView) cView).box.setChecked(t == CHECK_BOX_ON);
+                        TextView text2 = ((NotePreviewCheckedTextSubView) cView).text;
+                        setViewText(text2, note, contents.get(contentIdx));
+                        lineCountAdd = NoteViewUtils.getTextLineCount(text2.getText().toString(), parent.getWidth(), text2.getPaint());
+                        if (lineCount + lineCountAdd > PREVIEW_MAX_LINE) {
+                            text2.setMaxLines(PREVIEW_MAX_LINE - lineCount);
+                            lastLineEllipsized = true;
+                        }
+                        lineCount += lineCountAdd;
+                        break;
+                    default:
+                        cView = null;
+                        break;
+                }
+                if (cView != null) {
+                    viewIdx ++;
+                    addView(holder, cView.getView());
                 }
             }
+
             if (snippet.getPhotos() != null) {
                 holder.photo.setParseFile(snippet.getPhotos().get(0));
                 holder.photo.loadInBackground(new GetDataCallback() {
@@ -495,11 +578,40 @@ public class NoteListActivity extends Activity {
             holder.noteMetaData.setText(NoteUtils.getNoteSnippetMetaText(getContext(), note, snippet));
 			return view;
 		}
-	}
 
-	private static class ViewHolder {
-		TextView noteTitle;
-        ParseImageView photo;
-        TextView noteMetaData;
-	}
+        private class ViewHolder {
+            ArrayList<NotePreviewSubView> views;
+            LinearLayout viewContainer;
+            ParseImageView photo;
+            TextView noteMetaData;
+            TextView seeMore;
+        }
+
+        abstract private class NotePreviewSubView {
+            abstract View getView();
+        }
+
+        private class NotePreviewTextSubView extends NotePreviewSubView {
+            TextView text;
+            NotePreviewTextSubView(TextView text) {
+                this.text = text;
+            }
+            @Override
+            View getView() { return text; }
+        }
+
+        private class NotePreviewCheckedTextSubView extends NotePreviewSubView {
+            View view;
+            TextView text;
+            CheckBox box;
+            NotePreviewCheckedTextSubView(View view, TextView text, CheckBox box) {
+                this.view = view;
+                this.text = text;
+                this.box = box;
+            }
+            @Override
+            View getView() { return view; }
+        }
+    }
+
 }

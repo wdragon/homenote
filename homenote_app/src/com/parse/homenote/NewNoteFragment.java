@@ -135,6 +135,7 @@ public class NewNoteFragment extends Fragment {
 
             NoteSnippet snippet = note.createNewLastSnippet();
             dirtySnippet(snippet);
+            note.setCursorPosition(snippet, 0, 0);
             activity.saveNote(false);
             setupSnippetsView(note, v);
         }
@@ -480,6 +481,7 @@ public class NewNoteFragment extends Fragment {
         ParseImageView photo;
         NoteSnippet snippet;
         ArrayList<SnippetSubView> subViews;
+        LinearLayout subViewContainer;
 
         long lastActiveUpdatedTime = -1L;
         int activeSubView = -1;
@@ -568,23 +570,23 @@ public class NewNoteFragment extends Fragment {
             return null;
         }
 
-        private SnippetCheckedTextSubView createNewCheckedTextViewIfNotExist(int index, int type, final ViewHolder holder, LinearLayout layout, ViewGroup parent) {
+        private SnippetCheckedTextSubView createNewCheckedTextViewIfNotExist(int index, int type, final ViewHolder holder, LinearLayout container, ViewGroup parent) {
             if (holder.subViews != null && holder.subViews.size() > index) {
                 SnippetSubView subView = holder.subViews.get(index);
                 if (subView instanceof SnippetCheckedTextSubView) {
                     subView.index = index;
                     subView.type = type;
                     subView.edited = false;
-                    layout.addView(subView.view);
+                    container.addView(subView.view);
                     return (SnippetCheckedTextSubView)subView;
                 } else if (subView != null) {
-                    layout.removeView(subView.view);
+                    //container.removeView(subView.view);
                     holder.subViews.set(index, null);
                 }
             }
 
             View v = inflater.inflate(R.layout.snippet_checkedtext, parent, false);
-            layout.addView(v);
+            container.addView(v);
             final SnippetCheckedTextSubView subView = new SnippetCheckedTextSubView(
                     index,
                     type,
@@ -670,23 +672,23 @@ public class NewNoteFragment extends Fragment {
             return subView;
         }
 
-        private SnippetTextSubView createNewTextViewIfNotExist(int index, final ViewHolder holder, LinearLayout layout, ViewGroup parent) {
+        private SnippetTextSubView createNewTextViewIfNotExist(int index, final ViewHolder holder, LinearLayout container, ViewGroup parent) {
             if (holder.subViews != null && holder.subViews.size() > index) {
                 SnippetSubView subView = holder.subViews.get(index);
                 if (subView instanceof SnippetTextSubView) {
                     subView.index = index;
                     subView.type = NoteSnippetContentType.TEXT.ordinal();
                     subView.edited = false;
-                    layout.addView(subView.view);
+                    container.addView(subView.view);
                     return (SnippetTextSubView)subView;
                 } else if (subView != null) {
-                    layout.removeView(subView.view);
+                    //container.removeView(subView.view);
                     holder.subViews.set(index, null);
                 }
             }
 
             View v = inflater.inflate(R.layout.snippet_edittext, parent, false);
-            layout.addView(v);
+            container.addView(v);
             final SnippetTextSubView subView = new SnippetTextSubView(
                     index,
                     NoteSnippetContentType.TEXT.ordinal(),
@@ -750,6 +752,7 @@ public class NewNoteFragment extends Fragment {
                         .findViewById(R.id.snippet_meta_data);
                 holder.photo = (ParseImageView) view.findViewById(R.id.snippet_photo);
                 holder.snippet = snippet;
+                holder.subViewContainer = (LinearLayout) view.findViewById(R.id.snippet_linear_layout);
 
                 view.setTag(holder);
             } else {
@@ -758,10 +761,8 @@ public class NewNoteFragment extends Fragment {
 
             ArrayList<String> contents = snippet.getContents();
             ArrayList<Integer> contentTypes = snippet.getContentTypes();
-            ArrayList<Long> contentUpdatedTimes = snippet.getContentUpdatedTimes();
             NoteSnippetContentType types[] = NoteSnippetContentType.values();
-            LinearLayout layout = (LinearLayout) view.findViewById(R.id.snippet_linear_layout);
-            layout.removeAllViews();
+            holder.subViewContainer.removeAllViews();
             boolean hasCursor = (snippet == getNote().getCursorSnippet());
             for (int i=0; i<contents.size(); i++)
             {
@@ -780,23 +781,20 @@ public class NewNoteFragment extends Fragment {
 
                 int type = contentTypes.get(i);
                 NoteSnippetContentType t = types[type];
-                EditText editText = null;
                 switch (t) {
                     case TEXT:
-                        SnippetTextSubView subView1 = createNewTextViewIfNotExist(i, holder, layout, parent);
+                        SnippetTextSubView subView1 = createNewTextViewIfNotExist(i, holder, holder.subViewContainer, parent);
                         subView1.text.setVisibility(View.VISIBLE);
                         subView1.text.setText(contents.get(i));
-                        editText = subView1.text;
                         subView1.edited = false;
                         break;
                     case CHECK_BOX_ON:
                     case CHECK_BOX_OFF:
-                        SnippetCheckedTextSubView subView2 = createNewCheckedTextViewIfNotExist(i, type, holder, layout, parent);
+                        SnippetCheckedTextSubView subView2 = createNewCheckedTextViewIfNotExist(i, type, holder, holder.subViewContainer, parent);
                         subView2.box.setChecked(t == CHECK_BOX_ON);
                         subView2.box.setVisibility(View.VISIBLE);
                         subView2.text.setVisibility(View.VISIBLE);
                         subView2.text.setText(contents.get(i));
-                        editText = subView2.text;
                         subView2.edited = false;
                         break;
                     case DELETED:
@@ -804,13 +802,21 @@ public class NewNoteFragment extends Fragment {
                         // TODO: show error message
                         break;
                 }
-                if (hasCursor) {
-                    if (editText != null && i == getNote().getCursorSnippetContentIndex()) {
-                        editText.requestFocus();
-                        int start = getNote().getCursorSnippetContentTextOffset();
-                        if (start == -1)
-                            start = editText.getText().length();
-                        editText.setSelection(start);
+
+                if (holder.subViews != null && holder.subViews.size() > i) {
+                    SnippetSubView subView = holder.subViews.get(i);
+                    if (subView != null) {
+                        subView.edited = false;
+                        if (hasCursor) {
+                            if (subView instanceof SnippetSubViewWithText && i == getNote().getCursorSnippetContentIndex()) {
+                                EditText editText = ((SnippetSubViewWithText) subView).text;
+                                editText.requestFocus();
+                                int start = getNote().getCursorSnippetContentTextOffset();
+                                if (start == -1)
+                                    start = editText.getText().length();
+                                editText.setSelection(start);
+                            }
+                        }
                     }
                 }
             }

@@ -9,7 +9,8 @@
         android:layout_height="wrap_content"
         android:textColor="@color/timestamp"
         android:textSize="@dimen/note_item_meta_data_font"
-        android:layout_toLeftOf="@+id/snippet_sharing" />
+        android:layout_toLeftOf="@+id/snippet_sharing"
+        android:layout_width="match_parent" />
 
     <TextView
         android:layout_width="96dp"

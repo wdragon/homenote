@@ -29,4 +29,5 @@
     <string name="no_items">Click + to started adding notes.</string>
     <string name="not_logged_in">Not logged in</string>
     <string name="logged_in">Welcome, %1$s</string>
+    <string name="see_more">...</string>>
 </resources>
