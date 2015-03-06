@@ -21,4 +21,10 @@ android {
             res.srcDirs = ['res']
         }
     }
+
+    buildTypes {
+        debug {
+            debuggable true
+        }
+    }
 }

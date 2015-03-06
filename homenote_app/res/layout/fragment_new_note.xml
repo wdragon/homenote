@@ -17,7 +17,8 @@
         android:textSize="18sp"
         android:text="@string/note_prompt"
         android:paddingTop="@dimen/note_item_padding_top_bottom"
-        android:paddingBottom="@dimen/note_item_padding_top_bottom" />
+        android:paddingBottom="@dimen/note_item_padding_top_bottom"
+        android:isScrollContainer="false" />
 
     <ListView
             android:id="@+id/snippetList"

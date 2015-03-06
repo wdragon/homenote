@@ -6,6 +6,8 @@ import com.parse.ParseObject;
 import com.parse.ParseQuery;
 
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 
 /**
  * Created by Yuntao Jia on 1/8/2015.
@@ -13,9 +15,11 @@ import java.util.ArrayList;
 @ParseClassName("NoteSnippet")
 public class NoteSnippet extends ParseObject {
 
-    final String CONTENT_KEY = "contents";
-    final String CONTENT_TYPE_KEY = "contentTypes";
-    final String CONTENT_UPDATE_TIME_KEY = "contentUpdatedTimes";
+    final static String CONTENT_KEY = "contents";
+    final static String CONTENT_TYPE_KEY = "contentTypes";
+    final static String CONTENT_UPDATE_TIME_KEY = "contentUpdatedTimes";
+    final static String CREATED_TIME = "snippetCreatedAt";
+    final static String UPDATED_TIME = "snippetUpdatedAt";
 
     ArrayList<NoteSnippetContentOp> lastRoundOps;
 
@@ -30,11 +34,46 @@ public class NoteSnippet extends ParseObject {
     public NoteSnippet(String theClassName) {
     }
 
-    public NoteSnippet(Note note) { setNoteUuid(note.getUuidString()); }
+    /**
+     * @param note that the snippet belongs to
+     * @return a note snippet that is properly initialized
+     */
+    public static NoteSnippet createNew(Note note) {
+        NoteSnippet snippet = new NoteSnippet();
+        snippet.init(note);
+        return snippet;
+    }
 
-    public void setNoteUuid(String noteUuid) { put("noteUuid", noteUuid); }
+    /**
+     * Initialize when a new snippet is created
+     * @param note
+     */
+    protected void init(Note note) {
+        setNoteUuid(note.getUuidString());
+        setSnippetCreatedAt();
+        updateContent(0, null, NoteSnippetContentType.TEXT.ordinal());
+        setDraft(true);
+    }
+
+    protected void setNoteUuid(String noteUuid) { put("noteUuid", noteUuid); }
 
     public String getNoteUuid() { return getString("noteUuid"); }
+
+    protected void setSnippetCreatedAt() {
+        put(CREATED_TIME, Calendar.getInstance().getTime());
+    }
+
+    public Date getSnipetCreatedAt() {
+        return (Date)get(CREATED_TIME);
+    }
+
+    public void setSnippetUpdatedAt(Date date) {
+        put(UPDATED_TIME, date);
+    }
+
+    public Date getSnippetUpdatedAt() {
+        return (Date)get(UPDATED_TIME);
+    }
 
     public ArrayList<String> getContents() {
         return (ArrayList<String>)get(CONTENT_KEY);
@@ -255,6 +294,7 @@ public class NoteSnippet extends ParseObject {
 
     public void setDraft(boolean isDraft) {
         put("isDraft", isDraft);
+        setSnippetUpdatedAt(Calendar.getInstance().getTime());
     }
 
     public static ParseQuery<NoteSnippet> getQuery() {

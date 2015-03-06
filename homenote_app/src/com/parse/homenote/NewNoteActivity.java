@@ -5,7 +5,6 @@ import android.app.Fragment;
 import android.app.FragmentManager;
 import android.os.Bundle;
 
-import android.util.Log;
 import android.widget.Toast;
 import com.parse.*;
 
@@ -15,6 +14,7 @@ import java.util.List;
 public class NewNoteActivity extends Activity {
 
 	private Note note;
+    private UserPreference userPreference;
     private ArrayList<NoteSnippet> dirtySnippets;
 
     public void setNote(Note note_) {
@@ -67,6 +67,55 @@ public class NewNoteActivity extends Activity {
         return false;
     }
 
+    public void clearLastOpenedNote() {
+        if (userPreference == null)
+            return;
+
+        userPreference.setLastOpenedNote(null);
+        if (userPreference.isDraft()) {
+            userPreference.saveInBackground();
+        }
+    }
+
+    /**
+     * TODO: Do it at the right timing
+     */
+    public void saveLastOpenedNote() {
+        if (note == null)
+            return;
+
+        ParseQuery<UserPreference> prefQuery = UserPreference.getQuery();
+        prefQuery.fromLocalDatastore();
+        prefQuery.whereEqualTo("creator", ParseUser.getCurrentUser());
+        prefQuery.getFirstInBackground(new GetCallback<UserPreference>() {
+            @Override
+            public void done(UserPreference userPreference, ParseException e) {
+                if (e == null) {
+                    NewNoteActivity.this.userPreference = userPreference;
+                    userPreference.setLastOpenedNote(NewNoteActivity.this.getNote());
+                    if (userPreference.isDraft()) {
+                        try {
+                            userPreference.save();
+                        } catch (ParseException e1) {
+                            //ignore
+                        }
+                    }
+                } else {
+                    NoteUtils.createUserPreferenceIfNotExist();
+                }
+            }
+        });
+    }
+
+    public void deleteNote() throws ParseException {
+        if (note != null) {
+            NoteUtils.deleteNote(note);
+            setNote(null);
+        }
+        setResult(Activity.RESULT_OK);
+        finish();
+    }
+
     public void saveNote(boolean finishView) {
         boolean hasError = false;
         if (dirtySnippets != null) {
@@ -108,7 +157,7 @@ public class NewNoteActivity extends Activity {
         //getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
         super.onCreate(savedInstanceState);
 
-		setContentView(R.layout.activity_new_todo);
+		setContentView(R.layout.activity_new_note);
 
         Fragment fragment = getFragment();
         if (fragment == null) {

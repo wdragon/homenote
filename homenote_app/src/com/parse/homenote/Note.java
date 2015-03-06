@@ -1,6 +1,8 @@
 package com.parse.homenote;
 
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.UUID;
 
@@ -9,11 +11,36 @@ import com.parse.*;
 @ParseClassName("Note")
 public class Note extends ParseObject {
 
+    final static String CREATED_TIME = "noteCreatedAt";
+    final static String UPDATED_TIME = "noteUpdatedAt";
+
     public Note() {
     }
 
     public Note(java.lang.String theClassName) {
 
+    }
+
+    /**
+     * @return a new note object that is properly initialized
+     */
+    public static Note createNew() {
+        Note note = new Note();
+        note.init();
+        return note;
+    }
+
+    /**
+     * Initialize when a new note is created
+     */
+    protected void init() {
+        setUuidString();
+        setNoteCreatedAt();
+        setCreator(ParseUser.getCurrentUser());
+        ArrayList<ParseUser> authors = new ArrayList<ParseUser>();
+        authors.add(ParseUser.getCurrentUser());
+        setAuthors(authors);
+        setDraft(true);
     }
 
 	public ParseUser getCreator() {
@@ -60,11 +87,31 @@ public class Note extends ParseObject {
         if (cursorPosition == null) {
             cursorPosition = new HashMap<>();
         }
-        cursorPosition.put("snippet", snippet);
-        cursorPosition.put("contentIndex", snippetContentIndex);
-        cursorPosition.put("contentTextOffset", snippetContentTextOffset);
-        put("cursorPosition", cursorPosition);
-        setDraft(true);
+        if (getCursorSnippet() != snippet ||
+                getCursorSnippetContentIndex() != snippetContentIndex ||
+                getCursorSnippetContentTextOffset() != snippetContentTextOffset) {
+            cursorPosition.put("snippet", snippet);
+            cursorPosition.put("contentIndex", snippetContentIndex);
+            cursorPosition.put("contentTextOffset", snippetContentTextOffset);
+            put("cursorPosition", cursorPosition);
+            setDraft(true);
+        }
+    }
+
+    protected void setNoteCreatedAt() {
+        put(CREATED_TIME, Calendar.getInstance().getTime());
+    }
+
+    public Date getNoteCreatedAt() {
+        return (Date)get(CREATED_TIME);
+    }
+
+    public void setNoteUpdatedAt(Date date) {
+        put(UPDATED_TIME, date);
+    }
+
+    public Date getNoteUpdatedAt() {
+        return (Date)get(UPDATED_TIME);
     }
 
     public void setUuidString() {
@@ -82,13 +129,13 @@ public class Note extends ParseObject {
 
     public void setDraft(boolean isDraft) {
         put("isDraft", isDraft);
+        setNoteUpdatedAt(Calendar.getInstance().getTime());
     }
 
     public NoteSnippet getLastSnippet() { return (NoteSnippet)get("lastSnippet"); }
 
     public NoteSnippet createNewLastSnippet() {
-        NoteSnippet last = new NoteSnippet(this);
-        last.updateContent(0, null, NoteSnippetContentType.TEXT.ordinal());
+        NoteSnippet last = NoteSnippet.createNew(this);
         put("lastSnippet", last);
         return last;
     }

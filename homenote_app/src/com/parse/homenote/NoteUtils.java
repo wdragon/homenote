@@ -5,6 +5,7 @@ import android.text.TextUtils;
 import android.text.format.DateUtils;
 import android.widget.ImageView;
 
+import com.parse.GetCallback;
 import com.parse.Parse;
 import com.parse.ParseException;
 import com.parse.ParseInstallation;
@@ -21,14 +22,24 @@ import java.util.Date;
  */
 public class NoteUtils {
 
-    static final long TIME_MIN_RESOLUTION = DateUtils.SECOND_IN_MILLIS;
+    static final long TIME_MIN_RESOLUTION = DateUtils.MINUTE_IN_MILLIS;
     static final long TIME_TRANSITION_RESOLUTION = DateUtils.DAY_IN_MILLIS;
-    static final CharSequence delimiter = " | ";
+    static final CharSequence delimiter = "  \u2022  ";
 
-    public static CharSequence getRelativeDateTimeString(Context c, Date input) {
+    public static CharSequence getRelativeDateTimeString(Context c, Date input, boolean simpleMode, boolean hasPrefix) {
+        if (input == null) {
+            return hasPrefix ? "long time ago" : "Long time ago";
+        }
         Calendar cd = Calendar.getInstance();
+        long now = cd.getTimeInMillis();
         cd.setTime(input);
-        return DateUtils.getRelativeDateTimeString(c, cd.getTimeInMillis(), TIME_MIN_RESOLUTION, TIME_TRANSITION_RESOLUTION, DateUtils.FORMAT_SHOW_DATE);
+        if (now - cd.getTimeInMillis() < DateUtils.MINUTE_IN_MILLIS) {
+            return hasPrefix ? "just now" : "Just now";
+        }
+
+        return simpleMode
+                ? DateUtils.getRelativeTimeSpanString(cd.getTimeInMillis(), now, TIME_MIN_RESOLUTION, DateUtils.FORMAT_ABBREV_RELATIVE)
+                : DateUtils.getRelativeDateTimeString(c, cd.getTimeInMillis(), TIME_MIN_RESOLUTION, TIME_TRANSITION_RESOLUTION, DateUtils.FORMAT_SHOW_DATE);
     }
 
     public static CharSequence getSharingString(Note note) {
@@ -78,11 +89,15 @@ public class NoteUtils {
         }
     }
 
+    public static CharSequence getNotePreviewMetaText(Context c, Note note) {
+        CharSequence date = NoteUtils.getRelativeDateTimeString(c, note.getNoteUpdatedAt(), true, true);
+        CharSequence sharing = NoteUtils.getSharingString(note);
+        CharSequence[] strs = {"Updated " + date, sharing};
+        return TextUtils.join(NoteUtils.delimiter, strs);
+    }
+
     public static CharSequence getNoteSnippetMetaText(Context c, Note note, NoteSnippet snippet) {
-        CharSequence date = "Just now";
-        if (snippet.getCreatedAt() != null) {
-            date = NoteUtils.getRelativeDateTimeString(c, snippet.getCreatedAt());
-        }
+        CharSequence date = NoteUtils.getRelativeDateTimeString(c, snippet.getSnipetCreatedAt(), false, false);
         CharSequence sharing = NoteUtils.getSharingString(note);
         CharSequence[] strs = {date, sharing};
         return TextUtils.join(NoteUtils.delimiter, strs);
@@ -100,7 +115,8 @@ public class NoteUtils {
         if (note.getObjectId() != null) {
             note.deleteEventually();
         }
-        note.unpin(HomeNoteApplication.NOTE_GROUP_NAME);
+        note.setDraft(false);
+        note.unpin();
     }
 
     public static void setImageAlpha(ImageView photo, int alpha) {
@@ -110,5 +126,23 @@ public class NoteUtils {
         } else{
             photo.setAlpha(alpha);
         }
+    }
+
+    public static void createUserPreferenceIfNotExist() {
+        ParseQuery<UserPreference> prefQuery = UserPreference.getQuery();
+        prefQuery.whereEqualTo("creator", ParseUser.getCurrentUser());
+        prefQuery.getFirstInBackground(new GetCallback<UserPreference>() {
+            @Override
+            public void done(UserPreference userPreference, ParseException e) {
+                if (e == null) {
+                    userPreference.pinInBackground(HomeNoteApplication.NOTE_GROUP_NAME);
+                } else if (e.getCode() == ParseException.OBJECT_NOT_FOUND) {
+                    userPreference = new UserPreference();
+                    userPreference.setCreator(ParseUser.getCurrentUser());
+                    userPreference.pinInBackground(HomeNoteApplication.NOTE_GROUP_NAME);
+                    userPreference.saveEventually();
+                }
+            }
+        });
     }
 }

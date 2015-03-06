@@ -64,16 +64,18 @@ public class NewNoteFragment extends Fragment {
             ParseQuery<Note> query = Note.getQueryIncludeLastSnippet();
             query.fromLocalDatastore();
             query.whereEqualTo("uuid", noteId);
-            query.getFirstInBackground(new GetCallback<Note>() {
-
-                @Override
-                public void done(Note note, ParseException e) {
-                    if (!activity.isFinishing()) {
-                        activity.setNote(note);
-                        setupSnippetsView(note, v);
-                    }
+            Note note = null;
+            try {
+                note = query.getFirst();
+                if (!activity.isFinishing()) {
+                    activity.setNote(note);
+                    setupSnippetsView(note, v);
                 }
-            });
+            } catch (ParseException e) {
+                Toast.makeText(activity,
+                        "Error loading note: " + e.getMessage(),
+                        Toast.LENGTH_LONG).show();
+            }
         } else if (noteShareId != null) {
             ParseQuery<NoteShare> query = NoteShare.getQuery();
             query.include("note");
@@ -120,19 +122,13 @@ public class NewNoteFragment extends Fragment {
                     alert.show();
                 }
             } catch (ParseException e) {
-                e.printStackTrace();
-                // TODO SHOW ERROR message
+                Toast.makeText(activity,
+                        "Error loading note: " + e.getMessage(),
+                        Toast.LENGTH_LONG).show();
             }
         } else {
-            Note note = new Note();
-            note.setDraft(true);
-            note.setUuidString();
-            note.setCreator(ParseUser.getCurrentUser());
-            ArrayList<ParseUser> authors = new ArrayList<ParseUser>();
-            authors.add(ParseUser.getCurrentUser());
-            note.setAuthors(authors);
+            Note note = Note.createNew();
             activity.setNote(note);
-
             NoteSnippet snippet = note.createNewLastSnippet();
             dirtySnippet(snippet);
             note.setCursorPosition(snippet, 0, 0);
@@ -140,6 +136,7 @@ public class NewNoteFragment extends Fragment {
             setupSnippetsView(note, v);
         }
 
+        activity.saveLastOpenedNote();
         return v;
     }
 
@@ -177,8 +174,11 @@ public class NewNoteFragment extends Fragment {
 
             boolean finishView = (item.getItemId() == android.R.id.home);
             activity.saveNote(finishView);
+            if (finishView)
+                activity.clearLastOpenedNote();
 
-            endSaving();
+            if (activity.isNoteModified())
+                endSaving();
         }
 
         if (item.getItemId() == R.id.action_share) {
@@ -186,17 +186,7 @@ public class NewNoteFragment extends Fragment {
         }
 
         if (item.getItemId() == R.id.action_discard) {
-            // The todo will be deleted eventually but will
-            // immediately be excluded from query results.
-            try {
-                NoteUtils.deleteNote(activity.getNote());
-                activity.setResult(Activity.RESULT_OK);
-                activity.finish();
-            } catch (ParseException e) {
-                Toast.makeText(activity,
-                        "Error deleting note: " + e.getMessage(),
-                        Toast.LENGTH_LONG).show();
-            }
+            startDiscardDialog();
         }
 
         return super.onOptionsItemSelected(item);
@@ -211,6 +201,12 @@ public class NewNoteFragment extends Fragment {
     private void endSaving() {
         Toast.makeText(getActivity(),
                 "Note saved.",
+                Toast.LENGTH_SHORT).show();
+    }
+
+    private void endDeleting() {
+        Toast.makeText(getActivity(),
+                "Note deleted.",
                 Toast.LENGTH_SHORT).show();
     }
 
@@ -319,6 +315,33 @@ public class NewNoteFragment extends Fragment {
         alert.show();
     }
 
+    private void startDiscardDialog() {
+        AlertDialog.Builder alert = new AlertDialog.Builder(getView().getContext());
+        alert.setMessage("Delete note permanently?");
+
+        alert.setPositiveButton("Delete", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                try {
+                    getNoteActivity().clearLastOpenedNote();
+                    getNoteActivity().deleteNote();
+                    endDeleting();
+                } catch (ParseException e) {
+                    Toast.makeText(getNoteActivity(),
+                            "Error deleting note: " + e.getMessage(),
+                            Toast.LENGTH_LONG).show();
+                }
+            }
+        });
+
+        alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                // Canceled.
+            }
+        });
+
+        alert.show();
+    }
+
     protected void shareNote(final ParseUser from, final ParseUser to) {
 
         final NewNoteActivity activity = getNoteActivity();
@@ -396,7 +419,7 @@ public class NewNoteFragment extends Fragment {
                 if (fromLocal) {
                     query.fromLocalDatastore();
                 }
-                query.orderByDescending("createdAt");
+                query.orderByDescending(NoteSnippet.CREATED_TIME);
                 return query;
             }
         };
@@ -516,7 +539,6 @@ public class NewNoteFragment extends Fragment {
                     if (holder != null && holder.subViews != null) {
                         for (SnippetSubView subView : holder.subViews) {
                             if (subView != null && subView.edited == true) {
-                                // TODO update the proper content
                                 holder.snippet.updateContent(subView.index, subView.getContent(), subView.type);
                                 dirtySnippet(holder.snippet);
                                 subView.edited = false;

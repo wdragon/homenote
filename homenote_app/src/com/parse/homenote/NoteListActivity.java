@@ -51,16 +51,11 @@ public class NoteListActivity extends Activity {
 
     protected static final int PREVIEW_MAX_LINE = 3;
 
-	// Adapter for the Todos Parse Query
-	private ParseQueryAdapter<Note> noteListAdapter;
 
 	private LayoutInflater inflater;
-
-	// For showing empty and non-empty todo views
 	private ListView noteListView;
-	private LinearLayout noNotesView;
-
 	private TextView loggedInInfoView;
+    private ParseQueryAdapter<Note> noteListAdapter;
 
     private MenuItem refreshItem;
     private ImageView refreshActionView;
@@ -75,38 +70,12 @@ public class NoteListActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_note_list);
 
-		// Set up the views
-		noteListView = (ListView) findViewById(R.id.note_list_view);
-		noNotesView = (LinearLayout) findViewById(R.id.no_todos_view);
-		noteListView.setEmptyView(noNotesView);
-		loggedInInfoView = (TextView) findViewById(R.id.loggedin_info);
+        inflater = (LayoutInflater) this
+                .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        loggedInInfoView = (TextView) findViewById(R.id.loggedin_info);
 
-		// Set up the Parse query to use in the adapter
-		ParseQueryAdapter.QueryFactory<Note> factory = new ParseQueryAdapter.QueryFactory<Note>() {
-			public ParseQuery<Note> create() {
-				ParseQuery<Note> queryLocal = Note.getQueryIncludeLastSnippet();
-                queryLocal.whereEqualTo("authors", ParseUser.getCurrentUser());
-                queryLocal.orderByDescending("createdAt");
-                queryLocal.fromLocalDatastore();
-                return queryLocal;
-			}
-		};
-		// Set up the adapter
-		inflater = (LayoutInflater) this
-				.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-		noteListAdapter = new NoteListAdapter(this, factory);
-
-		// Attach the query adapter to the view
-        noteListView.setAdapter(noteListAdapter);
-
-		noteListView.setOnItemClickListener(new OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view,
-                                    int position, long id) {
-                Note note = noteListAdapter.getItem(position);
-                openEditView(note);
-            }
-        });
+        setUpNoteListView();
+        openLastOpenedNote();
 	}
 
 	@Override
@@ -120,6 +89,64 @@ public class NoteListActivity extends Activity {
 			updateLoggedInInfo();
 		}
 	}
+
+    private void setUpNoteListView() {
+        noteListView = (ListView) findViewById(R.id.note_list_view);
+        LinearLayout noNotesView = (LinearLayout) findViewById(R.id.no_todos_view);
+        noteListView.setEmptyView(noNotesView);
+
+        // Set up the Parse query to use in the adapter
+        ParseQueryAdapter.QueryFactory<Note> factory = new ParseQueryAdapter.QueryFactory<Note>() {
+            public ParseQuery<Note> create() {
+                ParseQuery<Note> queryLocal = Note.getQueryIncludeLastSnippet();
+                queryLocal.whereEqualTo("authors", ParseUser.getCurrentUser());
+                queryLocal.orderByDescending(Note.UPDATED_TIME);
+                queryLocal.fromLocalDatastore();
+                return queryLocal;
+            }
+        };
+        // Set up the adapter
+        noteListAdapter = new NoteListAdapter(this, factory);
+        noteListAdapter.addOnQueryLoadListener(new ParseQueryAdapter.OnQueryLoadListener<Note>() {
+            @Override
+            public void onLoading() {
+                // start animation
+            }
+
+            @Override
+            public void onLoaded(List<Note> notes, Exception e) {
+                // stop animation
+            }
+        });
+        // Attach the query adapter to the view
+        noteListView.setAdapter(noteListAdapter);
+        noteListView.setOnItemClickListener(new OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view,
+                                    int position, long id) {
+                Note note = noteListAdapter.getItem(position);
+                openEditView(note);
+            }
+        });
+    }
+
+    private void openLastOpenedNote() {
+        ParseQuery<UserPreference> prefQuery = UserPreference.getQuery();
+        prefQuery.fromLocalDatastore();
+        prefQuery.include("lastOpenedNote");
+        prefQuery.whereEqualTo("creator", ParseUser.getCurrentUser());
+        try {
+            UserPreference pref = prefQuery.getFirst();
+            Note note = pref.getLastOpenedNote();
+            if (note != null) {
+                Intent i = new Intent(this, NewNoteActivity.class);
+                i.putExtra("ID", note.getUuidString());
+                startActivityForResult(i, EDIT_ACTIVITY_CODE);
+            }
+        } catch (ParseException e) {
+            //ignore if the note doesn't exist
+        }
+    }
 
 	private void updateLoggedInInfo() {
 		if (!ParseAnonymousUtils.isLinked(ParseUser.getCurrentUser())) {
@@ -383,7 +410,9 @@ public class NoteListActivity extends Activity {
                     checkAndStopAnimation();
                     if (e == null) {
                         syncFromParseTotal++;
-                        ParseObject.pinAllInBackground((List<Note>) notes,
+                        ParseObject.pinAllInBackground(
+                                HomeNoteApplication.NOTE_GROUP_NAME,
+                                (List<Note>) notes,
                                 new SaveCallback() {
                                     public void done(ParseException e) {
                                         syncFromParseCount++;
@@ -411,7 +440,7 @@ public class NoteListActivity extends Activity {
             innerQuery.whereEqualTo("to", ParseUser.getCurrentUser());
             innerQuery.whereEqualTo("confirmed", true);
             ParseQuery<Note> queryShared = Note.getQueryIncludeLastSnippet();
-            queryShared.orderByDescending("createdAt");
+            queryShared.orderByDescending(Note.UPDATED_TIME);
             queryShared.whereMatchesKeyInQuery("uuid", "noteUUID", innerQuery);
             queryShared.whereEqualTo("authors", ParseUser.getCurrentUser());
             queryShared.findInBackground(new FindCallback<Note>() {
@@ -420,7 +449,9 @@ public class NoteListActivity extends Activity {
                     checkAndStopAnimation();
                     if (e == null) {
                         syncFromParseTotal++;
-                        ParseObject.pinAllInBackground((List<Note>) notes,
+                        ParseObject.pinAllInBackground(
+                                HomeNoteApplication.NOTE_GROUP_NAME,
+                                (List<Note>) notes,
                                 new SaveCallback() {
                                     public void done(ParseException e) {
                                         syncFromParseCount++;
@@ -575,7 +606,8 @@ public class NoteListActivity extends Activity {
             } else {
                 holder.photo.setVisibility(View.GONE);
             }
-            holder.noteMetaData.setText(NoteUtils.getNoteSnippetMetaText(getContext(), note, snippet));
+
+            holder.noteMetaData.setText(NoteUtils.getNotePreviewMetaText(getContext(), note));
 			return view;
 		}
 

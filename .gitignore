@@ -43,3 +43,8 @@ gen-external-apklibs
 # Gradle
 .gradle
 build
+
+# Parse cloud code
+parse_cloudcode/config/*
+parse_cloudcode/public/*
+

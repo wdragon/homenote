@@ -5,4 +5,5 @@
     android:fontFamily="sans-serif"
     android:textSize="@dimen/note_item_text_font"
     android:layout_alignParentLeft="true"
-    android:text="@string/see_more" />
+    android:text="@string/see_more"
+    android:paddingLeft="@dimen/note_item_padding_left_right" />
