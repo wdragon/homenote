@@ -21,7 +21,7 @@ public class NotificationUtils {
         JSONObject data = new JSONObject();
         data.put("alert", message);
         data.put("type", NOTIF_TYPE_NOTE_SHARED);
-        data.put("noteShareID", noteShareID);
+        data.put(NewNoteFragment.NOTE_SHARE_ID_PARAM, noteShareID);
 
         notifyUser(user, data);
     }

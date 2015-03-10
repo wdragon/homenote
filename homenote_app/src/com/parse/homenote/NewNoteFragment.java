@@ -35,6 +35,10 @@ import static com.parse.homenote.NoteSnippetContentType.*;
  */
 public class NewNoteFragment extends Fragment {
 
+    final static String NOTE_ID_PARAM = "Id";
+    final static String NOTE_SHARE_ID_PARAM = "noteShareId";
+    final static String NOTE_REMINDER_ID_PARAM = "noteReminderId";
+
     private LayoutInflater inflater;
     private ListView snippetListView;
     private NoteSnippetListAdapter snippetListAdapter;
@@ -58,9 +62,11 @@ public class NewNoteFragment extends Fragment {
         // Fetch the noteId from the Extra data
         String noteId = null;
         String noteShareId = null;
+        String noteReminderId = null;
         if (getArguments() != null) {
-            noteId = getArguments().getString("ID");
-            noteShareId = getArguments().getString("noteShareId");
+            noteId = getArguments().getString(NOTE_ID_PARAM);
+            noteShareId = getArguments().getString(NOTE_SHARE_ID_PARAM);
+            noteReminderId = getArguments().getString(NOTE_REMINDER_ID_PARAM);
         }
 
         if (noteId != null) {
@@ -129,6 +135,11 @@ public class NewNoteFragment extends Fragment {
                         "Error loading note: " + e.getMessage(),
                         Toast.LENGTH_LONG).show();
             }
+        } else if (noteReminderId != null) {
+            Toast.makeText(activity,
+                    "Note reminder id: " + noteReminderId,
+                    Toast.LENGTH_LONG).show();
+            //TODO: properly handle reminder
         } else {
             Note note = Note.createNew();
             activity.setNote(note);
@@ -303,6 +314,8 @@ public class NewNoteFragment extends Fragment {
 
 
     private void toggleReminder() {
+        snippetListAdapter.save();
+        snippetListAdapter.saveCursorPosition();
         final NoteSnippet snippet = getCurrentSnippet();
         ArrayList<NoteReminder> reminders = snippet.getReminders();
         final NoteReminder reminder = (reminders != null && reminders.size() > 0 && !NoteUtils.isNull(reminders.get(0))) ? reminders.get(0) : null;
@@ -311,7 +324,7 @@ public class NewNoteFragment extends Fragment {
             @Override
             public void onTimeSelected(long timeInMillis) {
                 if (reminder == null) {
-                    snippet.addReminder(NoteReminder.createNew(timeInMillis, ParseUser.getCurrentUser(), snippet));
+                    snippet.addReminder(NoteReminder.createNew(timeInMillis, ParseUser.getCurrentUser(), snippet, getNote()));
                 } else {
                     reminder.setReminderTimeInMillis(timeInMillis);
                 }

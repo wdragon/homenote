@@ -15,13 +15,14 @@ import java.util.Calendar;
 @ParseClassName("NoteReminder")
 public class NoteReminder extends ParseObject {
 
-    public static NoteReminder createNew(long timeInMillis, ParseUser to, NoteSnippet snippet) {
+    public static NoteReminder createNew(long timeInMillis, ParseUser to, NoteSnippet snippet, Note note) {
         NoteReminder reminder = new NoteReminder();
         reminder.setReminderTimeInMillis(timeInMillis);
         reminder.setFrom(ParseUser.getCurrentUser());
         reminder.setTo(to);
         reminder.setScheduled(false);
         reminder.setNoteSnippetUUID(snippet.getUUIDString());
+        reminder.setNoteUUID(note.getUUIDString());
         return reminder;
     }
 
@@ -64,6 +65,10 @@ public class NoteReminder extends ParseObject {
     public void setNoteSnippetUUID(String uuid) {
         put("noteSnippetUUID", uuid);
     }
+
+    public String getNoteUUID() { return getString("noteUUID"); }
+
+    public void setNoteUUID(String uuid) { put("noteUUID", uuid); }
 
     public CharSequence getDescription(Context c) {
         ParseUser from = getFrom();

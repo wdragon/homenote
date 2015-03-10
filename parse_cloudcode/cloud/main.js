@@ -24,7 +24,6 @@ Parse.Cloud.job("reminders", function(request, status) {
   query.each(function(reminder) {
     // push
     var timeInMillis = reminder.get("reminderTs");
-    console.log("one candidate: " + timeInMillis);
     if (timeInMillis - curDate.getTime() >= -fiveMinutesInMillis &&
         timeInMillis - curDate.getTime() <= fiveMinutesInMillis) {
       var pushDate = new Date(timeInMillis);
@@ -39,25 +38,24 @@ Parse.Cloud.job("reminders", function(request, status) {
       }
       var userId = toUser.id;
       var pushQuery = new Parse.Query(Parse.Installation);
-      pushQuery.equalTo('user_id', userId);
+      pushQuery.equalTo('user', toUser);
+      pushQuery.equalTo('channels', 'homenotes');
       console.log("Sending reminder '" + pushMessage + "' to: " + userId + " at time: " + pushDate.toUTCString());
 
       Parse.Push.send({
         where: pushQuery,
         data: {
-          alert: pushMessage
-        },
-        push_time: pushDate,
-        data: {
+          alert: pushMessage,
           type: reminderNotifType,
-          noteSnippetUUID: reminder.get("noteSnippetUUID")
-        }
+          noteReminderId: reminder.id
+        },
+        push_time: pushDate
       }, {
         success: function() {
           console.log("Reminder to " + userId + " is sent!");
         },
         error: function(error) {
-          console.log("Failed to send reminder to " + userId + "!");
+          console.log("Failed to send reminder to " + userId + " with error " + error.code + " " + error.message);
           reminder.set("scheduled", false);
           reminder.save();
         }
@@ -65,13 +63,13 @@ Parse.Cloud.job("reminders", function(request, status) {
       count ++;
     }
 
-    //reminder.set("scheduled", true);
+    reminder.set("scheduled", true);
     return reminder.save();
   }).then(function() {
     // Set the job's success status
-    status.success(count + " reminders sent successfully.");
+    status.success(count + " reminders were sent successfully.");
   }, function(error) {
     // Set the job's error status
-    status.error(count + " reminders sent with an error: " + error);
+    status.error(count + " reminders were sent with an error: " + error.code + " " + error.message);
   });
 });

@@ -137,7 +137,7 @@ public class NoteListActivity extends Activity {
             Note note = pref.getLastOpenedNote();
             if (note != null) {
                 Intent i = new Intent(this, NewNoteActivity.class);
-                i.putExtra("ID", note.getUUIDString());
+                i.putExtra(NewNoteFragment.NOTE_ID_PARAM, note.getUUIDString());
                 startActivityForResult(i, EDIT_ACTIVITY_CODE);
             }
         } catch (ParseException e) {
@@ -157,7 +157,7 @@ public class NoteListActivity extends Activity {
 
 	private void openEditView(Note note) {
 		Intent i = new Intent(this, NewNoteActivity.class);
-		i.putExtra("ID", note.getUUIDString());
+		i.putExtra(NewNoteFragment.NOTE_ID_PARAM, note.getUUIDString());
 		startActivityForResult(i, EDIT_ACTIVITY_CODE);
 	}
 
