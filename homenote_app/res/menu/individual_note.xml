@@ -16,6 +16,13 @@
     </item>
 
     <item
+        android:id="@+id/action_reminder"
+        android:icon="@drawable/ic_action_alarms"
+        android:showAsAction="ifRoom"
+        android:title="@string/action_reminder">
+    </item>
+
+    <item
         android:id="@+id/action_save"
         android:icon="@drawable/ic_action_save"
         android:showAsAction="ifRoom"

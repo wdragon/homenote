@@ -18,6 +18,7 @@
     <string name="action_camera">Photo</string>
     <string name="action_save">Save</string>
     <string name="action_checkbox">Todo</string>
+    <string name="action_reminder">Reminder</string>
     <string name="action_share">Share</string>
     <string name="cancel">Cancel</string>
     <string name="action_discard">Delete</string>
@@ -29,5 +30,9 @@
     <string name="no_items">Click + to started adding notes.</string>
     <string name="not_logged_in">Not logged in</string>
     <string name="logged_in">Welcome, %1$s</string>
-    <string name="see_more">...</string>>
+    <string name="see_more">...</string>
+    <string name="date_time_picker_set">Set</string>
+    <string name="delete">Delete</string>
+    <string name="reminder_pick_time">Pick a time to create a reminder.</string>
+    <string name="reminder_update_time">Pick a new time to update the reminder.</string>
 </resources>

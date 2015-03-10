@@ -6,12 +6,11 @@ import android.text.format.DateUtils;
 import android.widget.ImageView;
 
 import com.parse.GetCallback;
-import com.parse.Parse;
 import com.parse.ParseException;
-import com.parse.ParseInstallation;
-import com.parse.ParsePush;
 import com.parse.ParseQuery;
 import com.parse.ParseUser;
+
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -33,7 +32,7 @@ public class NoteUtils {
         Calendar cd = Calendar.getInstance();
         long now = cd.getTimeInMillis();
         cd.setTime(input);
-        if (now - cd.getTimeInMillis() < DateUtils.MINUTE_IN_MILLIS) {
+        if (Math.abs(now - cd.getTimeInMillis()) < DateUtils.MINUTE_IN_MILLIS) {
             return hasPrefix ? "just now" : "Just now";
         }
 
@@ -97,7 +96,7 @@ public class NoteUtils {
     }
 
     public static CharSequence getNoteSnippetMetaText(Context c, Note note, NoteSnippet snippet) {
-        CharSequence date = NoteUtils.getRelativeDateTimeString(c, snippet.getSnipetCreatedAt(), false, false);
+        CharSequence date = NoteUtils.getRelativeDateTimeString(c, snippet.getSnippetCreatedAt(), false, false);
         CharSequence sharing = NoteUtils.getSharingString(note);
         CharSequence[] strs = {date, sharing};
         return TextUtils.join(NoteUtils.delimiter, strs);
@@ -144,5 +143,9 @@ public class NoteUtils {
                 }
             }
         });
+    }
+
+    public static boolean isNull(Object obj) {
+        return (obj == null || obj == JSONObject.NULL);
     }
 }

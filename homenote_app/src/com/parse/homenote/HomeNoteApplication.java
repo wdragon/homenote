@@ -20,6 +20,7 @@ public class HomeNoteApplication extends Application {
         ParseObject.registerSubclass(NoteSnippet.class);
         ParseObject.registerSubclass(NoteShare.class);
         ParseObject.registerSubclass(UserPreference.class);
+        ParseObject.registerSubclass(NoteReminder.class);
 
 		// enable the Local Datastore
 		Parse.enableLocalDatastore(getApplicationContext());

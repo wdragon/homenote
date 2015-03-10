@@ -4,12 +4,11 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.UUID;
 
 import com.parse.*;
 
 @ParseClassName("Note")
-public class Note extends ParseObject {
+public class Note extends ParseObjectWithUUID {
 
     final static String CREATED_TIME = "noteCreatedAt";
     final static String UPDATED_TIME = "noteUpdatedAt";
@@ -34,7 +33,7 @@ public class Note extends ParseObject {
      * Initialize when a new note is created
      */
     protected void init() {
-        setUuidString();
+        setUUIDString();
         setNoteCreatedAt();
         setCreator(ParseUser.getCurrentUser());
         ArrayList<ParseUser> authors = new ArrayList<ParseUser>();
@@ -113,15 +112,6 @@ public class Note extends ParseObject {
     public Date getNoteUpdatedAt() {
         return (Date)get(UPDATED_TIME);
     }
-
-    public void setUuidString() {
-	    UUID uuid = UUID.randomUUID();
-	    put("uuid", uuid.toString());
-	}
-	
-	public String getUuidString() {
-		return getString("uuid");
-	}
 
     public boolean isDraft() {
         return getBoolean("isDraft");

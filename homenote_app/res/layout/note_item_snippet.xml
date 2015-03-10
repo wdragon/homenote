@@ -16,14 +16,23 @@
         <LinearLayout
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal" >
+                android:orientation="vertical"
+                android:paddingBottom="@dimen/note_component_padding" >
+
             <TextView
                     android:id="@+id/snippet_meta_data"
                     android:layout_width="fill_parent"
                     android:layout_height="wrap_content"
-                    android:paddingBottom="@dimen/note_component_padding"
                     android:textColor="@color/timestamp"
                     android:textSize="@dimen/note_item_meta_data_font" />
+
+            <LinearLayout
+                android:id="@+id/snippet_reminder_linear_layout"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" >
+            </LinearLayout>
+
         </LinearLayout>
 
         <com.parse.ParseImageView

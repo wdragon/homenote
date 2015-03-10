@@ -1,12 +1,13 @@
 package com.parse.homenote;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Fragment;
 import android.app.FragmentTransaction;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.provider.CalendarContract;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.KeyEvent;
@@ -21,7 +22,9 @@ import android.widget.*;
 import com.parse.*;
 
 import org.json.JSONException;
+import org.json.JSONObject;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -185,6 +188,10 @@ public class NewNoteFragment extends Fragment {
             startShareDialog();
         }
 
+        if (item.getItemId() == R.id.action_reminder) {
+            toggleReminder();
+        }
+
         if (item.getItemId() == R.id.action_discard) {
             startDiscardDialog();
         }
@@ -216,6 +223,21 @@ public class NewNoteFragment extends Fragment {
 
     private Note getNote() {
         return getNoteActivity().getNote();
+    }
+
+    /**
+     * The snippet is focused or the last snippet of the note
+     * @return NoteSnippet object
+     */
+    private NoteSnippet getCurrentSnippet() {
+        NoteSnippet snippet = null;
+        Note note = getNote();
+        if (snippetListAdapter.lastSnippetVH != null) {
+            snippet = snippetListAdapter.lastSnippetVH.snippet;
+        } else if (note != null) {
+            snippet = note.getLastSnippet();
+        }
+        return snippet;
     }
 
     private void dirtySnippet(NoteSnippet snippet) {
@@ -279,6 +301,35 @@ public class NewNoteFragment extends Fragment {
         transaction.commit();
     }
 
+
+    private void toggleReminder() {
+        final NoteSnippet snippet = getCurrentSnippet();
+        ArrayList<NoteReminder> reminders = snippet.getReminders();
+        final NoteReminder reminder = (reminders != null && reminders.size() > 0 && !NoteUtils.isNull(reminders.get(0))) ? reminders.get(0) : null;
+        Long timeInMillis = (reminder != null) ? reminder.getReminderTimeInMillis() : null;
+        NoteViewUtils.showDateTimePicker(getActivity(), timeInMillis, new NoteViewUtils.DateTimePickerCallback() {
+            @Override
+            public void onTimeSelected(long timeInMillis) {
+                if (reminder == null) {
+                    snippet.addReminder(NoteReminder.createNew(timeInMillis, ParseUser.getCurrentUser(), snippet));
+                } else {
+                    reminder.setReminderTimeInMillis(timeInMillis);
+                }
+                dirtySnippet(snippet);
+                snippetListAdapter.notifyDataSetChanged();
+            }
+            @Override
+            public void onTimeDeleted() {
+                if (reminder != null) {
+                    snippet.removeReminder(reminder);
+                    reminder.deleteEventually();
+                    reminder.unpinInBackground();
+                    dirtySnippet(snippet);
+                    snippetListAdapter.notifyDataSetChanged();
+                }
+            }
+        });
+    }
     private void startShareDialog() {
         AlertDialog.Builder alert = new AlertDialog.Builder(getView().getContext());
         alert.setMessage("Share note with:");
@@ -359,7 +410,7 @@ public class NewNoteFragment extends Fragment {
         ParseQuery<NoteShare> query = NoteShare.getQuery();
         query.whereEqualTo("from", from);
         query.whereEqualTo("to", to);
-        query.whereEqualTo("noteUUID", note.getUuidString());
+        query.whereEqualTo("noteUUID", note.getUUIDString());
         // execute the query
         query.getFirstInBackground(new GetCallback<NoteShare>() {
             public void done(NoteShare noteShare, ParseException e) {
@@ -375,7 +426,7 @@ public class NewNoteFragment extends Fragment {
                     newNoteShare.setTo(to);
                     newNoteShare.setConfirmed(false);
                     newNoteShare.setNote(note);
-                    newNoteShare.setNoteUUID(note.getUuidString());
+                    newNoteShare.setNoteUUID(note.getUUIDString());
                     final ParseACL groupACL = new ParseACL();
                     groupACL.setReadAccess(from, true);
                     groupACL.setWriteAccess(from, true);
@@ -415,7 +466,9 @@ public class NewNoteFragment extends Fragment {
         ParseQueryAdapter.QueryFactory<NoteSnippet> factory = new ParseQueryAdapter.QueryFactory<NoteSnippet>() {
             public ParseQuery<NoteSnippet> create() {
                 ParseQuery<NoteSnippet> query = NoteSnippet.getQuery();
-                query.whereEqualTo("noteUuid", note.getUuidString());
+                query.whereEqualTo("noteUuid", note.getUUIDString());
+                query.include(NoteSnippet.REMINDER_KEY + ".from");
+                query.include(NoteSnippet.REMINDER_KEY + ".to");
                 if (fromLocal) {
                     query.fromLocalDatastore();
                 }
@@ -503,8 +556,10 @@ public class NewNoteFragment extends Fragment {
         TextView timestamp;
         ParseImageView photo;
         NoteSnippet snippet;
-        ArrayList<SnippetSubView> subViews;
         LinearLayout subViewContainer;
+        ArrayList<SnippetSubView> subViews;
+        LinearLayout reminderContainer;
+        ArrayList<LinearLayout> reminders;
 
         long lastActiveUpdatedTime = -1L;
         int activeSubView = -1;
@@ -765,6 +820,27 @@ public class NewNoteFragment extends Fragment {
             return subView;
         }
 
+        private void renderReminders(final NoteSnippet snippet, ViewHolder holder, ViewGroup parent) {
+            holder.reminderContainer.removeAllViews();
+            ArrayList<NoteReminder> reminders = snippet.getReminders();
+            if (reminders != null && reminders.size() > 0) {
+                if (holder.reminders == null)
+                    holder.reminders = new ArrayList<>();
+                for (int i=0; i<reminders.size(); i++) {
+                    if (NoteUtils.isNull(reminders.get(i))) {
+                        continue;
+                    }
+                    while (holder.reminders.size() <= i) {
+                        LinearLayout t = (LinearLayout) inflater.inflate(R.layout.snippet_reminder, parent, false);
+                        holder.reminders.add(t);
+                    }
+                    TextView tv = (TextView) holder.reminders.get(i).findViewById(R.id.snippet_reminder_text);
+                    tv.setText(reminders.get(i).getDescription(getContext()));
+                    holder.reminderContainer.addView(holder.reminders.get(i));
+                }
+            }
+        }
+
         public View getItemView(final NoteSnippet snippet, View view, ViewGroup parent) {
             final ViewHolder holder;
             if (view == null) {
@@ -775,7 +851,7 @@ public class NewNoteFragment extends Fragment {
                 holder.photo = (ParseImageView) view.findViewById(R.id.snippet_photo);
                 holder.snippet = snippet;
                 holder.subViewContainer = (LinearLayout) view.findViewById(R.id.snippet_linear_layout);
-
+                holder.reminderContainer = (LinearLayout) view.findViewById(R.id.snippet_reminder_linear_layout);
                 view.setTag(holder);
             } else {
                 holder = (ViewHolder) view.getTag();
@@ -860,6 +936,8 @@ public class NewNoteFragment extends Fragment {
             } else {
                 holder.timestamp.setVisibility(View.GONE);
             }
+
+            renderReminders(snippet, holder, parent);
 
             snippet.cleanContentOps();
             return view;

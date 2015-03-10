@@ -10,7 +10,6 @@ import android.graphics.Typeface;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
-import android.util.AttributeSet;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -39,8 +38,6 @@ import com.parse.ParseQueryAdapter;
 import com.parse.ParseUser;
 import com.parse.SaveCallback;
 import com.parse.ui.ParseLoginBuilder;
-
-import org.w3c.dom.Text;
 
 import static com.parse.homenote.NoteSnippetContentType.*;
 
@@ -140,7 +137,7 @@ public class NoteListActivity extends Activity {
             Note note = pref.getLastOpenedNote();
             if (note != null) {
                 Intent i = new Intent(this, NewNoteActivity.class);
-                i.putExtra("ID", note.getUuidString());
+                i.putExtra("ID", note.getUUIDString());
                 startActivityForResult(i, EDIT_ACTIVITY_CODE);
             }
         } catch (ParseException e) {
@@ -160,7 +157,7 @@ public class NoteListActivity extends Activity {
 
 	private void openEditView(Note note) {
 		Intent i = new Intent(this, NewNoteActivity.class);
-		i.putExtra("ID", note.getUuidString());
+		i.putExtra("ID", note.getUUIDString());
 		startActivityForResult(i, EDIT_ACTIVITY_CODE);
 	}
 

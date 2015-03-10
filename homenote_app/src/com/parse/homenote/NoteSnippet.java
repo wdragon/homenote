@@ -2,7 +2,6 @@ package com.parse.homenote;
 
 import com.parse.ParseClassName;
 import com.parse.ParseFile;
-import com.parse.ParseObject;
 import com.parse.ParseQuery;
 
 import java.util.ArrayList;
@@ -13,13 +12,14 @@ import java.util.Date;
  * Created by Yuntao Jia on 1/8/2015.
  */
 @ParseClassName("NoteSnippet")
-public class NoteSnippet extends ParseObject {
+public class NoteSnippet extends ParseObjectWithUUID {
 
     final static String CONTENT_KEY = "contents";
     final static String CONTENT_TYPE_KEY = "contentTypes";
     final static String CONTENT_UPDATE_TIME_KEY = "contentUpdatedTimes";
     final static String CREATED_TIME = "snippetCreatedAt";
     final static String UPDATED_TIME = "snippetUpdatedAt";
+    final static String REMINDER_KEY = "reminders";
 
     ArrayList<NoteSnippetContentOp> lastRoundOps;
 
@@ -49,21 +49,22 @@ public class NoteSnippet extends ParseObject {
      * @param note
      */
     protected void init(Note note) {
-        setNoteUuid(note.getUuidString());
+        setUUIDString();
+        setNoteUUID(note.getUUIDString());
         setSnippetCreatedAt();
         updateContent(0, null, NoteSnippetContentType.TEXT.ordinal());
         setDraft(true);
     }
 
-    protected void setNoteUuid(String noteUuid) { put("noteUuid", noteUuid); }
+    protected void setNoteUUID(String noteUuid) { put("noteUuid", noteUuid); }
 
-    public String getNoteUuid() { return getString("noteUuid"); }
+    public String getNoteUUID() { return getString("noteUuid"); }
 
     protected void setSnippetCreatedAt() {
         put(CREATED_TIME, Calendar.getInstance().getTime());
     }
 
-    public Date getSnipetCreatedAt() {
+    public Date getSnippetCreatedAt() {
         return (Date)get(CREATED_TIME);
     }
 
@@ -73,6 +74,34 @@ public class NoteSnippet extends ParseObject {
 
     public Date getSnippetUpdatedAt() {
         return (Date)get(UPDATED_TIME);
+    }
+
+    public ArrayList<NoteReminder> getReminders() { return (ArrayList<NoteReminder>)get(REMINDER_KEY); }
+
+    public void addReminder(NoteReminder reminder) {
+        if (reminder != null) {
+            ArrayList<NoteReminder> reminders = getReminders();
+            if (reminders == null)
+                reminders = new ArrayList<>();
+            if (!reminders.contains(reminder)) {
+                reminders.add(reminder);
+                put(REMINDER_KEY, reminders);
+                setDraft(true);
+            }
+        }
+    }
+
+    public void removeReminder(NoteReminder reminder) {
+        if (reminder != null) {
+            ArrayList<NoteReminder> reminders = getReminders();
+            if (reminders == null)
+                reminders = new ArrayList<>();
+            if (reminders.contains(reminder)) {
+                reminders.remove(reminder);
+                put(REMINDER_KEY, reminders);
+                setDraft(true);
+            }
+        }
     }
 
     public ArrayList<String> getContents() {

@@ -15,6 +15,7 @@ import org.json.JSONObject;
 public class NotificationUtils {
 
     public static final int NOTIF_TYPE_NOTE_SHARED = 1;
+    public static final int NOTIF_TYPE_REMINDER = 2;
 
     public static void notifyUserInvite(ParseUser user, String message, String noteShareID) throws JSONException {
         JSONObject data = new JSONObject();
