@@ -73,9 +73,8 @@ public class NewNoteFragment extends Fragment {
             ParseQuery<Note> query = Note.getQueryIncludeLastSnippet();
             query.fromLocalDatastore();
             query.whereEqualTo("uuid", noteId);
-            Note note = null;
             try {
-                note = query.getFirst();
+                Note note = query.getFirst();
                 if (!activity.isFinishing()) {
                     activity.setNote(note);
                     setupSnippetsView(note, v);
@@ -136,10 +135,36 @@ public class NewNoteFragment extends Fragment {
                         Toast.LENGTH_LONG).show();
             }
         } else if (noteReminderId != null) {
-            Toast.makeText(activity,
-                    "Note reminder id: " + noteReminderId,
-                    Toast.LENGTH_LONG).show();
-            //TODO: properly handle reminder
+            ParseQuery<NoteReminder> innerQuery = NoteReminder.getQuery();
+            innerQuery.whereEqualTo("objectId", noteReminderId);
+            ParseQuery<Note> queryReminded = Note.getQueryIncludeLastSnippet();
+            queryReminded.whereMatchesKeyInQuery("uuid", "noteUUID", innerQuery);
+            try {
+                Note note = queryReminded.getFirst();
+                if (!activity.isFinishing()) {
+                    activity.setNote(note);
+                    setupSnippetsView(note, v);
+                }
+
+                innerQuery.include("from");
+                innerQuery.include("to");
+                innerQuery.getFirstInBackground(new GetCallback<NoteReminder>() {
+                    @Override
+                    public void done(NoteReminder noteReminder, ParseException e) {
+                        if (e == null) {
+                            //TODO: If the receiver is different, then show a dialog to ignore this doc or ignore all future reminders
+                        } else {
+                            Toast.makeText(activity,
+                                    "Error loading the reminder: " + e.getMessage(),
+                                    Toast.LENGTH_LONG).show();
+                        }
+                    }
+                });
+            } catch (ParseException e) {
+                Toast.makeText(activity,
+                        "Error loading the reminded note: " + e.getMessage(),
+                        Toast.LENGTH_LONG).show();
+            }
         } else {
             Note note = Note.createNew();
             activity.setNote(note);
