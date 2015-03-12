@@ -5,13 +5,10 @@ import android.app.Fragment;
 import android.app.FragmentTransaction;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.graphics.drawable.Drawable;
+import android.database.DataSetObserver;
 import android.os.Bundle;
-import android.provider.CalendarContract;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.text.format.DateUtils;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -24,11 +21,8 @@ import android.widget.*;
 import com.parse.*;
 
 import org.json.JSONException;
-import org.json.JSONObject;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 
 import static com.parse.homenote.NoteSnippetContentType.*;
@@ -43,7 +37,7 @@ public class NewNoteFragment extends Fragment {
     final static String NOTE_REMINDER_ID_PARAM = "noteReminderId";
 
     private LayoutInflater inflater;
-    private ListView snippetListView;
+    private SnippetListView snippetListView;
     private NoteSnippetListAdapter snippetListAdapter;
     private Menu menu;
 
@@ -62,7 +56,6 @@ public class NewNoteFragment extends Fragment {
         setHasOptionsMenu(true);
         NoteViewUtils.setUpBackButton(activity);
 
-        // Fetch the noteId from the Extra data
         String noteId = null;
         String noteShareId = null;
         String noteReminderId = null;
@@ -599,14 +592,19 @@ public class NewNoteFragment extends Fragment {
             @Override
             public void onLoaded(List<NoteSnippet> snippets, Exception e) {
                 // Execute any post-loading logic, hide "loading" UI
-                if (!fromLocal) {
-                    activity.pinSnippets(snippets);
+                if (e == null) {
+                    if (!fromLocal) {
+                        activity.pinSnippets(snippets);
+                    }
                 }
             }
         });
 
-        snippetListView = (ListView) v.findViewById(R.id.snippetList);
-        snippetListView.setAdapter(snippetListAdapter);
+        snippetListView = new SnippetListView(
+                (LinearLayout) v.findViewById(R.id.snippetList),
+                snippetListAdapter
+        );
+
         updateActions(note);
     }
 
@@ -964,6 +962,9 @@ public class NewNoteFragment extends Fragment {
         }
 
         public View getItemView(final NoteSnippet snippet, View view, ViewGroup parent) {
+            if (snippet == null || getNote() == null) {
+                return view;
+            }
             final ViewHolder holder;
             disableListeners = true;
             boolean reuseView = true;
@@ -986,7 +987,7 @@ public class NewNoteFragment extends Fragment {
             ArrayList<Integer> contentTypes = snippet.getContentTypes();
             NoteSnippetContentType types[] = NoteSnippetContentType.values();
             holder.subViewContainer.removeAllViews();
-            boolean hasCursor = (snippet == getNote().getCursorSnippet());
+            boolean hasCursor = (getNote() != null && snippet == getNote().getCursorSnippet());
             for (int i=0; i<contents.size(); i++)
             {
                 if (reuseView) {
@@ -1071,6 +1072,62 @@ public class NewNoteFragment extends Fragment {
             snippet.cleanContentOps();
             disableListeners = false;
             return view;
+        }
+    }
+
+    /**
+     * The scroll view of all snippets in the note
+     */
+    private class SnippetListView {
+        LinearLayout container;
+        NoteSnippetListAdapter snippetListAdapter;
+        ArrayList<NoteSnippet> snippets;
+        ArrayList<View> snippetViews;
+
+        SnippetListView(LinearLayout container, NoteSnippetListAdapter snippetListAdapter) {
+            this.container = container;
+            this.snippetListAdapter = snippetListAdapter;
+            this.container.removeAllViews();
+            this.snippets = new ArrayList<>();
+            this.snippetViews = new ArrayList<>();
+
+            this.snippetListAdapter.registerDataSetObserver(new DataSetObserver() {
+                @Override
+                public void onChanged() {
+                    super.onChanged();
+                    syncWithSnippetData();
+                }
+
+                @Override
+                public void onInvalidated() {
+                    super.onInvalidated();
+                    //TODO: handle invalidated
+                }
+            });
+
+            this.snippetListAdapter.loadObjects();
+        }
+
+        /**
+         * Assuming no deletion of snippets which is true currently
+         */
+        public void syncWithSnippetData() {
+            for (int i=0; i<snippetListAdapter.getCount(); i++) {
+                NoteSnippet s = (NoteSnippet) snippetListAdapter.getItem(i);
+                if (snippets.size() > i && !snippets.get(i).getUUIDString().equals(s.getUUIDString())) {
+                    View v = snippetListAdapter.getItemView(s, null, null);
+                    snippets.add(i, s);
+                    container.addView(v, i);
+                    snippetViews.add(i, v);
+                } else if (snippets.size() <= i) {
+                    snippets.add(s);
+                    View v = snippetListAdapter.getItemView(s, null, null);
+                    container.addView(v);
+                    snippetViews.add(v);
+                } else {
+                    snippetListAdapter.getItemView(s, snippetViews.get(i), null);
+                }
+            }
         }
     }
 }

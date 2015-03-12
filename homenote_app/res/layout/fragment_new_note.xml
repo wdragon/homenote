@@ -20,13 +20,16 @@
         android:paddingBottom="@dimen/note_item_padding_top_bottom"
         android:isScrollContainer="false" />
 
-    <ListView
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/notePrompt">
+        <LinearLayout
             android:id="@+id/snippetList"
-            android:layout_width="fill_parent"
+            android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_below="@+id/notePrompt"
-            android:divider="@null"
             android:background="@drawable/bg_parent"
-            android:descendantFocusability="beforeDescendants" />
+            android:orientation="vertical" />
+        </ScrollView>
 
 </RelativeLayout>
