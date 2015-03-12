@@ -14,7 +14,6 @@ import java.util.List;
 public class NewNoteActivity extends Activity {
 
 	private Note note;
-    private UserPreference userPreference;
     private ArrayList<NoteSnippet> dirtySnippets;
 
     public void setNote(Note note_) {
@@ -68,6 +67,7 @@ public class NewNoteActivity extends Activity {
     }
 
     public void clearLastOpenedNote() {
+        UserPreference userPreference = UserPreferenceManager.getInstance();
         if (userPreference == null)
             return;
 
@@ -84,27 +84,14 @@ public class NewNoteActivity extends Activity {
         if (note == null)
             return;
 
-        ParseQuery<UserPreference> prefQuery = UserPreference.getQuery();
-        prefQuery.fromLocalDatastore();
-        prefQuery.whereEqualTo("creator", ParseUser.getCurrentUser());
-        prefQuery.getFirstInBackground(new GetCallback<UserPreference>() {
-            @Override
-            public void done(UserPreference userPreference, ParseException e) {
-                if (e == null) {
-                    NewNoteActivity.this.userPreference = userPreference;
-                    userPreference.setLastOpenedNote(NewNoteActivity.this.getNote());
-                    if (userPreference.isDraft()) {
-                        try {
-                            userPreference.save();
-                        } catch (ParseException e1) {
-                            //ignore
-                        }
-                    }
-                } else {
-                    NoteUtils.createUserPreferenceIfNotExist();
-                }
-            }
-        });
+        UserPreference userPreference = UserPreferenceManager.getInstance();
+        if (userPreference == null)
+            return;
+
+        userPreference.setLastOpenedNote(NewNoteActivity.this.getNote());
+        if (userPreference.isDraft()) {
+            userPreference.saveInBackground();
+        }
     }
 
     public void deleteNote() throws ParseException {

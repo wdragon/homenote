@@ -30,20 +30,29 @@ public class HomeNoteApplication extends Application {
         ParseACL defaultACL = new ParseACL();
 		ParseACL.setDefaultACL(defaultACL, true);
 
+        initInBackground();
+
+	}
+
+    private void initInBackground() {
+        UserPreferenceManager.fetchInstanceInBackground();
+
         // Associate the device with a user
         ParseInstallation installation = ParseInstallation.getCurrentInstallation();
-        installation.put("user",ParseUser.getCurrentUser());
-        installation.saveInBackground();
+        if (installation.get("user") != ParseUser.getCurrentUser()) {
+            installation.put("user", ParseUser.getCurrentUser());
+            installation.saveInBackground();
+        }
 
         ParsePush.subscribeInBackground("homenotes", new SaveCallback() {
             @Override
             public void done(ParseException e) {
                 if (e == null) {
-                    Log.d("com.parse.push", "successfully subscribed to the broadcast channel.");
+                    Log.d("HomeNote", "successfully subscribed to the broadcast channel.");
                 } else {
-                    Log.e("com.parse.push", "failed to subscribe for push", e);
+                    Log.e("HomeNote", "failed to subscribe for push", e);
                 }
             }
         });
-	}
+    }
 }

@@ -1,6 +1,7 @@
 package com.parse.homenote;
 
 import android.content.Context;
+import android.text.format.DateUtils;
 
 import com.parse.ParseClassName;
 import com.parse.ParseObject;
@@ -76,7 +77,7 @@ public class NoteReminder extends ParseObject {
         long t = getReminderTimeInMillis();
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(t);
-        CharSequence time = NoteUtils.getRelativeDateTimeString(c, cal.getTime(), false, true);
+        CharSequence time = DateUtils.getRelativeDateTimeString(c, cal.getTimeInMillis(), DateUtils.DAY_IN_MILLIS, DateUtils.DAY_IN_MILLIS, DateUtils.FORMAT_ABBREV_ALL);
 
         if (from == ParseUser.getCurrentUser()) {
             if (from == to) {
@@ -93,6 +94,16 @@ public class NoteReminder extends ParseObject {
                 return NoteViewUtils.getDisplayName(from) + " wants to remind " + NoteViewUtils.getDisplayName(to) + " " + time;
             }
         }
+    }
+
+    public void snooze() {
+        setReminderTimeInMillis(NoteUtils.getSnoozeTimeInMillis());
+        setScheduled(false);
+    }
+
+    public void reschedule(long timeInMillis) {
+        setReminderTimeInMillis(timeInMillis);
+        setScheduled(false);
     }
 
     public static ParseQuery<NoteReminder> getQuery() { return ParseQuery.getQuery(NoteReminder.class); }

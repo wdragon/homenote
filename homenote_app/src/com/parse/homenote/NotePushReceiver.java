@@ -8,8 +8,6 @@ import com.parse.ParsePushBroadcastReceiver;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import static android.support.v4.app.ActivityCompat.startActivityForResult;
-
 /**
  * Created by Yuntao Jia on 12/12/2014.
  */
@@ -30,7 +28,7 @@ public class NotePushReceiver extends ParsePushBroadcastReceiver {
                     i = new Intent(context, NewNoteActivity.class);
                     i.putExtra(NewNoteFragment.NOTE_SHARE_ID_PARAM, noteShareId);
                     i.putExtras(extras);
-                    i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
                     context.startActivity(i);
                     break;
                 case NotificationUtils.NOTIF_TYPE_REMINDER:
@@ -38,7 +36,7 @@ public class NotePushReceiver extends ParsePushBroadcastReceiver {
                     i = new Intent(context, NewNoteActivity.class);
                     i.putExtra(NewNoteFragment.NOTE_REMINDER_ID_PARAM, noteReminderId);
                     i.putExtras(extras);
-                    i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
                     context.startActivity(i);
                     break;
             }

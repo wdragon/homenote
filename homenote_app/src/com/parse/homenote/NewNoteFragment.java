@@ -10,6 +10,8 @@ import android.os.Bundle;
 import android.provider.CalendarContract;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.text.format.DateUtils;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -26,6 +28,7 @@ import org.json.JSONObject;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 import static com.parse.homenote.NoteSnippetContentType.*;
@@ -94,41 +97,7 @@ public class NewNoteFragment extends Fragment {
                 final Note note = noteShare.getNote();
                 activity.setNote(note);
                 setupSnippetsView(note, v);
-                if (noteShare.getConfirmed() == false) {
-                    AlertDialog.Builder alert = new AlertDialog.Builder(activity);
-                    alert.setMessage(noteShare.getFrom().getUsername() + " shared a note to you:");
-
-                    alert.setPositiveButton("Accept to Edit", new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int whichButton) {
-                            noteShare.setConfirmed(true);
-                            noteShare.saveInBackground(new SaveCallback() {
-                                @Override
-                                public void done(ParseException e) {
-                                    if (e != null) {
-                                        Toast.makeText(activity,
-                                                "Unable to accept note from " + noteShare.getFrom().getUsername(),
-                                                Toast.LENGTH_LONG).show();
-                                    }
-                                }
-                            });
-                            ArrayList<ParseUser> authors = note.getAuthors();
-                            if (!authors.contains(ParseUser.getCurrentUser())) {
-                                authors.add(ParseUser.getCurrentUser());
-                                note.setAuthors(authors);
-                                note.setDraft(true);
-                                updateActions(note);
-                            }
-                        }
-                    });
-
-                    alert.setNegativeButton("Ignore", new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int whichButton) {
-                            // Canceled.
-                        }
-                    });
-
-                    alert.show();
-                }
+                showShareApprovalDialog(noteShare);
             } catch (ParseException e) {
                 Toast.makeText(activity,
                         "Error loading note: " + e.getMessage(),
@@ -146,13 +115,15 @@ public class NewNoteFragment extends Fragment {
                     setupSnippetsView(note, v);
                 }
 
+                // TODO: focus on the snippet
+
                 innerQuery.include("from");
                 innerQuery.include("to");
                 innerQuery.getFirstInBackground(new GetCallback<NoteReminder>() {
                     @Override
                     public void done(NoteReminder noteReminder, ParseException e) {
                         if (e == null) {
-                            //TODO: If the receiver is different, then show a dialog to ignore this doc or ignore all future reminders
+                            showReminderAcknowledgeDialog(noteReminder);
                         } else {
                             Toast.makeText(activity,
                                     "Error loading the reminder: " + e.getMessage(),
@@ -351,23 +322,33 @@ public class NewNoteFragment extends Fragment {
                 if (reminder == null) {
                     snippet.addReminder(NoteReminder.createNew(timeInMillis, ParseUser.getCurrentUser(), snippet, getNote()));
                 } else {
-                    reminder.setReminderTimeInMillis(timeInMillis);
+                    reminder.reschedule(timeInMillis);
                 }
-                dirtySnippet(snippet);
-                snippetListAdapter.notifyDataSetChanged();
+                reminder.saveEventually(new SaveCallback() {
+                    @Override
+                    public void done(ParseException e) {
+                        if (e == null)
+                            snippetListAdapter.notifyDataSetChanged();
+                    }
+                });
             }
             @Override
             public void onTimeDeleted() {
                 if (reminder != null) {
                     snippet.removeReminder(reminder);
-                    reminder.deleteEventually();
-                    reminder.unpinInBackground();
                     dirtySnippet(snippet);
-                    snippetListAdapter.notifyDataSetChanged();
+                    reminder.deleteEventually(new DeleteCallback() {
+                        @Override
+                        public void done(ParseException e) {
+                            snippetListAdapter.notifyDataSetChanged();
+                        }
+                    });
+                    reminder.unpinInBackground();
                 }
             }
         });
     }
+
     private void startShareDialog() {
         AlertDialog.Builder alert = new AlertDialog.Builder(getView().getContext());
         alert.setMessage("Share note with:");
@@ -428,6 +409,98 @@ public class NewNoteFragment extends Fragment {
             }
         });
 
+        alert.show();
+    }
+
+    private void showShareApprovalDialog(final NoteShare noteShare) {
+        if (noteShare.getConfirmed() == false) {
+            final NewNoteActivity activity = getNoteActivity();
+            AlertDialog.Builder alert = new AlertDialog.Builder(activity);
+            alert.setMessage(noteShare.getFrom().getUsername() + " shared a note to you:");
+
+            alert.setPositiveButton("Accept to Edit", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int whichButton) {
+                    noteShare.setConfirmed(true);
+                    noteShare.saveInBackground(new SaveCallback() {
+                        @Override
+                        public void done(ParseException e) {
+                            if (e != null) {
+                                Toast.makeText(activity,
+                                        "Unable to accept note from " + noteShare.getFrom().getUsername(),
+                                        Toast.LENGTH_LONG).show();
+                            }
+                        }
+                    });
+                    Note note = getNote();
+                    ArrayList<ParseUser> authors = note.getAuthors();
+                    if (!authors.contains(ParseUser.getCurrentUser())) {
+                        authors.add(ParseUser.getCurrentUser());
+                        note.setAuthors(authors);
+                        note.setDraft(true);
+                        updateActions(note);
+                    }
+                }
+            });
+
+            alert.setNegativeButton("Ignore", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int whichButton) {
+                    // Canceled.
+                }
+            });
+
+            alert.show();
+        }
+    }
+
+    private void showReminderAcknowledgeDialog(final NoteReminder reminder) {
+        Context c = getView().getContext();
+        AlertDialog.Builder alert = new AlertDialog.Builder(c);
+        alert.setTitle("Reminder");
+        String reminderCreator = NoteViewUtils.getDisplayName(reminder.getFrom()) + " added a reminder to this note:";
+        if (reminder.getFrom() == ParseUser.getCurrentUser()) {
+            reminderCreator = "You added a reminder to this note:";
+        }
+        String reminderDesc = "\"" + reminder.getDescription(c) + "\"";
+        alert.setMessage(reminderCreator + "\n" + reminderDesc);
+        alert.setPositiveButton("Dismiss", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+            }
+        });
+
+        alert.setNeutralButton("Snooze", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                // postpone another 10 minutes
+                reminder.snooze();
+                reminder.saveEventually(new SaveCallback() {
+                    @Override
+                    public void done(ParseException e) {
+                        if (e == null)
+                            snippetListAdapter.notifyDataSetChanged();
+                    }
+                });
+            }
+        });
+
+        if (reminder.getFrom() != ParseUser.getCurrentUser()) {
+            alert.setNegativeButton("Block", new DialogInterface.OnClickListener() {
+
+                //TODO: show confirmation dialog
+                public void onClick(DialogInterface dialog, int whichButton) {
+                    UserPreference userPreference = UserPreferenceManager.getInstance();
+                    if (userPreference == null) {
+                        Toast.makeText(getActivity(),
+                                "Failed to block user at this moment, please try again later",
+                                Toast.LENGTH_LONG).show();
+                    } else {
+                        userPreference.addBlockUser(reminder.getFrom());
+                        if (userPreference.isDraft()) {
+                            userPreference.saveInBackground();
+                        }
+                    }
+                }
+            });
+        }
         alert.show();
     }
 
@@ -507,6 +580,7 @@ public class NewNoteFragment extends Fragment {
                 query.whereEqualTo("noteUuid", note.getUUIDString());
                 query.include(NoteSnippet.REMINDER_KEY + ".from");
                 query.include(NoteSnippet.REMINDER_KEY + ".to");
+                //TODO: load from local first and load from server asynchronously
                 if (fromLocal) {
                     query.fromLocalDatastore();
                 }
@@ -607,6 +681,7 @@ public class NewNoteFragment extends Fragment {
 
         private ViewHolder lastSnippetVH = null;
         private ArrayList<ViewHolder> dirtyViews = null;
+        private boolean disableListeners = false;
 
         public NoteSnippetListAdapter(Context context, QueryFactory<NoteSnippet> queryFactory) {
             super(context, queryFactory);
@@ -695,7 +770,6 @@ public class NewNoteFragment extends Fragment {
                     container.addView(subView.view);
                     return (SnippetCheckedTextSubView)subView;
                 } else if (subView != null) {
-                    //container.removeView(subView.view);
                     holder.subViews.set(index, null);
                 }
             }
@@ -728,6 +802,8 @@ public class NewNoteFragment extends Fragment {
                 public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
                 @Override
                 public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    if (disableListeners)
+                        return;
                     subView.edited = true;
                 }
                 @Override
@@ -829,6 +905,8 @@ public class NewNoteFragment extends Fragment {
                 public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
                 @Override
                 public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    if (disableListeners)
+                        return;
                     subView.edited = true;
                 }
                 @Override
@@ -879,9 +957,18 @@ public class NewNoteFragment extends Fragment {
             }
         }
 
+        private void setEditText(EditText et, String t) {
+            if (!et.getText().equals(t)) {
+                et.setText(t);
+            }
+        }
+
         public View getItemView(final NoteSnippet snippet, View view, ViewGroup parent) {
             final ViewHolder holder;
+            disableListeners = true;
+            boolean reuseView = true;
             if (view == null) {
+                reuseView = false;
                 view = inflater.inflate(R.layout.note_item_snippet, parent, false);
                 holder = new ViewHolder();
                 holder.timestamp = (TextView) view
@@ -902,17 +989,19 @@ public class NewNoteFragment extends Fragment {
             boolean hasCursor = (snippet == getNote().getCursorSnippet());
             for (int i=0; i<contents.size(); i++)
             {
-                NoteSnippetContentOp op = snippet.getContentOp(i);
-                switch (op) {
-                    case INSERT:
-                        holder.subViews.add(i, null);
-                        break;
-                    case DELETE:
-                        if (holder.subViews.get(i) != null) {
-                            holder.subViews.get(i).view.setVisibility(View.GONE);
-                            holder.subViews.set(i, null);
-                        }
-                        break;
+                if (reuseView) {
+                    NoteSnippetContentOp op = snippet.getContentOp(i);
+                    switch (op) {
+                        case INSERT:
+                            holder.subViews.add(i, null);
+                            break;
+                        case DELETE:
+                            if (holder.subViews.get(i) != null) {
+                                holder.subViews.get(i).view.setVisibility(View.GONE);
+                                holder.subViews.set(i, null);
+                            }
+                            break;
+                    }
                 }
 
                 int type = contentTypes.get(i);
@@ -921,7 +1010,7 @@ public class NewNoteFragment extends Fragment {
                     case TEXT:
                         SnippetTextSubView subView1 = createNewTextViewIfNotExist(i, holder, holder.subViewContainer, parent);
                         subView1.text.setVisibility(View.VISIBLE);
-                        subView1.text.setText(contents.get(i));
+                        setEditText(subView1.text, contents.get(i));
                         subView1.edited = false;
                         break;
                     case CHECK_BOX_ON:
@@ -930,7 +1019,7 @@ public class NewNoteFragment extends Fragment {
                         subView2.box.setChecked(t == CHECK_BOX_ON);
                         subView2.box.setVisibility(View.VISIBLE);
                         subView2.text.setVisibility(View.VISIBLE);
-                        subView2.text.setText(contents.get(i));
+                        setEditText(subView2.text, contents.get(i));
                         subView2.edited = false;
                         break;
                     case DELETED:
@@ -946,11 +1035,13 @@ public class NewNoteFragment extends Fragment {
                         if (hasCursor) {
                             if (subView instanceof SnippetSubViewWithText && i == getNote().getCursorSnippetContentIndex()) {
                                 EditText editText = ((SnippetSubViewWithText) subView).text;
-                                editText.requestFocus();
-                                int start = getNote().getCursorSnippetContentTextOffset();
-                                if (start == -1)
-                                    start = editText.getText().length();
-                                editText.setSelection(start);
+                                if (!editText.hasFocus()) {
+                                    editText.requestFocus();
+                                    int start = getNote().getCursorSnippetContentTextOffset();
+                                    if (start == -1)
+                                        start = editText.getText().length();
+                                    editText.setSelection(start);
+                                }
                             }
                         }
                     }
@@ -978,6 +1069,7 @@ public class NewNoteFragment extends Fragment {
             renderReminders(snippet, holder, parent);
 
             snippet.cleanContentOps();
+            disableListeners = false;
             return view;
         }
     }

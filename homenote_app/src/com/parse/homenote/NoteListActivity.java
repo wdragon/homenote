@@ -128,20 +128,15 @@ public class NoteListActivity extends Activity {
     }
 
     private void openLastOpenedNote() {
-        ParseQuery<UserPreference> prefQuery = UserPreference.getQuery();
-        prefQuery.fromLocalDatastore();
-        prefQuery.include("lastOpenedNote");
-        prefQuery.whereEqualTo("creator", ParseUser.getCurrentUser());
-        try {
-            UserPreference pref = prefQuery.getFirst();
-            Note note = pref.getLastOpenedNote();
-            if (note != null) {
-                Intent i = new Intent(this, NewNoteActivity.class);
-                i.putExtra(NewNoteFragment.NOTE_ID_PARAM, note.getUUIDString());
-                startActivityForResult(i, EDIT_ACTIVITY_CODE);
-            }
-        } catch (ParseException e) {
-            //ignore if the note doesn't exist
+        UserPreference userPreference = UserPreferenceManager.getInstance();
+        if (userPreference == null)
+            return;
+
+        Note note = userPreference.getLastOpenedNote();
+        if (note != null) {
+            Intent i = new Intent(this, NewNoteActivity.class);
+            i.putExtra(NewNoteFragment.NOTE_ID_PARAM, note.getUUIDString());
+            startActivityForResult(i, EDIT_ACTIVITY_CODE);
         }
     }
 

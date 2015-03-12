@@ -23,7 +23,11 @@ public class NoteUtils {
 
     static final long TIME_MIN_RESOLUTION = DateUtils.MINUTE_IN_MILLIS;
     static final long TIME_TRANSITION_RESOLUTION = DateUtils.DAY_IN_MILLIS;
+
+    static final int REMINDER_SNOOZE_MINUTES = 10;
+
     static final CharSequence delimiter = "  \u2022  ";
+
 
     public static CharSequence getRelativeDateTimeString(Context c, Date input, boolean simpleMode, boolean hasPrefix) {
         if (input == null) {
@@ -127,25 +131,11 @@ public class NoteUtils {
         }
     }
 
-    public static void createUserPreferenceIfNotExist() {
-        ParseQuery<UserPreference> prefQuery = UserPreference.getQuery();
-        prefQuery.whereEqualTo("creator", ParseUser.getCurrentUser());
-        prefQuery.getFirstInBackground(new GetCallback<UserPreference>() {
-            @Override
-            public void done(UserPreference userPreference, ParseException e) {
-                if (e == null) {
-                    userPreference.pinInBackground(HomeNoteApplication.NOTE_GROUP_NAME);
-                } else if (e.getCode() == ParseException.OBJECT_NOT_FOUND) {
-                    userPreference = new UserPreference();
-                    userPreference.setCreator(ParseUser.getCurrentUser());
-                    userPreference.pinInBackground(HomeNoteApplication.NOTE_GROUP_NAME);
-                    userPreference.saveEventually();
-                }
-            }
-        });
-    }
-
     public static boolean isNull(Object obj) {
         return (obj == null || obj == JSONObject.NULL);
+    }
+
+    public static long getSnoozeTimeInMillis() {
+        return Calendar.getInstance().getTimeInMillis() + DateUtils.MINUTE_IN_MILLIS * REMINDER_SNOOZE_MINUTES;
     }
 }
