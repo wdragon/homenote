@@ -41,9 +41,40 @@ public class NewNoteFragment extends Fragment {
     private NoteSnippetListAdapter snippetListAdapter;
     private Menu menu;
 
+    NoteTaskRateTracker loadSnippetInBackground;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        loadSnippetInBackground = new NoteTaskRateTracker();
+        loadSnippetInBackground.setTask(new Runnable() {
+            @Override
+            public void run() {
+                if (getNote() != null && getNote().getObjectId() != null) {
+                    ParseQuery<NoteSnippet> query = NoteSnippet.getQuery();
+                    query.whereEqualTo("noteUuid", getNote().getUUIDString());
+                    query.include(NoteSnippet.REMINDER_KEY + ".from");
+                    query.include(NoteSnippet.REMINDER_KEY + ".to");
+                    query.findInBackground(new FindCallback<NoteSnippet>() {
+                        @Override
+                        public void done(List<NoteSnippet> noteSnippets, ParseException e) {
+                            if (e == null) {
+                                getNoteActivity().pinSnippets(noteSnippets);
+                                if (snippetListAdapter != null) {
+                                    // refresh view is view is there
+                                    snippetListAdapter.notifyDataSetChanged();
+                                }
+                            } else {
+                                Toast.makeText(getActivity(),
+                                        "Unable to load note from server: " + e.getMessage(),
+                                        Toast.LENGTH_LONG).show();
+                            }
+                        }
+                    });
+                }
+            }
+        });
     }
 
     @Override
@@ -54,7 +85,7 @@ public class NewNoteFragment extends Fragment {
         final NewNoteActivity activity = getNoteActivity();
 
         setHasOptionsMenu(true);
-        NoteViewUtils.setUpBackButton(activity);
+        NoteViewUtils.setUpBackButtonView(activity, "Note");
 
         String noteId = null;
         String noteShareId = null;
@@ -130,16 +161,19 @@ public class NewNoteFragment extends Fragment {
                         Toast.LENGTH_LONG).show();
             }
         } else {
-            Note note = Note.createNew();
-            activity.setNote(note);
-            NoteSnippet snippet = note.createNewLastSnippet();
-            dirtySnippet(snippet);
-            note.setCursorPosition(snippet, 0, 0);
-            activity.saveNote(false);
-            setupSnippetsView(note, v);
+            if (activity.getNote() == null) {
+                Note note = Note.createNew();
+                activity.setNote(note);
+                NoteSnippet snippet = note.createNewLastSnippet();
+                dirtySnippet(snippet);
+                note.setCursorPosition(snippet, 0, 0);
+                activity.saveNote(false);
+            }
+            setupSnippetsView(activity.getNote(), v);
         }
 
         activity.saveLastOpenedNote();
+        loadSnippetInBackground.tryRun();
         return v;
     }
 
@@ -156,12 +190,7 @@ public class NewNoteFragment extends Fragment {
         NewNoteActivity activity = getNoteActivity();
 
         if (item.getItemId() == R.id.action_camera) {
-            InputMethodManager imm = (InputMethodManager) getActivity()
-                    .getSystemService(Context.INPUT_METHOD_SERVICE);
-            if (snippetListAdapter.getCurrentText() != null) {
-                imm.hideSoftInputFromWindow(snippetListAdapter.getCurrentText().getWindowToken(), 0);
-            }
-            startCamera();
+            startImagePicker();
         }
 
         if (item.getItemId() == R.id.action_checkbox) {
@@ -292,15 +321,22 @@ public class NewNoteFragment extends Fragment {
         snippetListAdapter.notifyDataSetChanged();
     }
 
-    private void startCamera() {
-        Fragment cameraFragment = new CameraFragment();
+    private void startImagePicker() {
+       if (snippetListAdapter.getCurrentText() != null) {
+            InputMethodManager imm = (InputMethodManager) getActivity()
+                    .getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(snippetListAdapter.getCurrentText().getWindowToken(), 0);
+        }
+        snippetListAdapter.save();
+        snippetListAdapter.saveCursorPosition();
+
+        Fragment imagePickerFragment = new ImagePickerFragment();
         FragmentTransaction transaction = getActivity().getFragmentManager()
                 .beginTransaction();
-        transaction.replace(R.id.fragmentContainer, cameraFragment);
+        transaction.replace(R.id.new_note_fragment, imagePickerFragment);
         transaction.addToBackStack("NewNoteFragment");
         transaction.commit();
     }
-
 
     private void toggleReminder() {
         snippetListAdapter.save();
@@ -487,9 +523,7 @@ public class NewNoteFragment extends Fragment {
                                 Toast.LENGTH_LONG).show();
                     } else {
                         userPreference.addBlockUser(reminder.getFrom());
-                        if (userPreference.isDraft()) {
-                            userPreference.saveInBackground();
-                        }
+                        userPreference.syncToParseInBackground();
                     }
                 }
             });
@@ -565,7 +599,6 @@ public class NewNoteFragment extends Fragment {
     }
 
     protected void setupSnippetsView(final Note note, final View v) {
-        final boolean fromLocal = (note.getObjectId() == null);
         final NewNoteActivity activity = getNoteActivity();
         ParseQueryAdapter.QueryFactory<NoteSnippet> factory = new ParseQueryAdapter.QueryFactory<NoteSnippet>() {
             public ParseQuery<NoteSnippet> create() {
@@ -573,11 +606,8 @@ public class NewNoteFragment extends Fragment {
                 query.whereEqualTo("noteUuid", note.getUUIDString());
                 query.include(NoteSnippet.REMINDER_KEY + ".from");
                 query.include(NoteSnippet.REMINDER_KEY + ".to");
-                //TODO: load from local first and load from server asynchronously
-                if (fromLocal) {
-                    query.fromLocalDatastore();
-                }
-                query.orderByDescending(NoteSnippet.CREATED_TIME);
+                query.fromLocalDatastore();
+                query.orderByAscending(NoteSnippet.CREATED_TIME);
                 return query;
             }
         };
@@ -593,9 +623,6 @@ public class NewNoteFragment extends Fragment {
             public void onLoaded(List<NoteSnippet> snippets, Exception e) {
                 // Execute any post-loading logic, hide "loading" UI
                 if (e == null) {
-                    if (!fromLocal) {
-                        activity.pinSnippets(snippets);
-                    }
                 }
             }
         });
@@ -610,16 +637,10 @@ public class NewNoteFragment extends Fragment {
 
     public void updateActions(Note note) {
         if (menu != null && note != null) {
-            if (NoteUtils.canViewerEdit(note)) {
-                menu.findItem(R.id.action_camera).setVisible(true);
-                menu.findItem(R.id.action_save).setVisible(true);
-                menu.findItem(R.id.action_share).setVisible(true);
-                menu.findItem(R.id.action_discard).setVisible(true);
-            } else {
-                menu.findItem(R.id.action_camera).setVisible(false);
-                menu.findItem(R.id.action_save).setVisible(false);
-                menu.findItem(R.id.action_share).setVisible(false);
-                menu.findItem(R.id.action_discard).setVisible(false);
+            boolean visible = NoteUtils.canViewerEdit(note);
+            for (int i=0; i<menu.size(); i++) {
+                // have a blacklist?
+                menu.getItem(i).setVisible(visible);
             }
         }
     }
@@ -664,7 +685,7 @@ public class NewNoteFragment extends Fragment {
 
     private static class ViewHolder {
         TextView timestamp;
-        ParseImageView photo;
+        NoteImageView photo;
         NoteSnippet snippet;
         LinearLayout subViewContainer;
         ArrayList<SnippetSubView> subViews;
@@ -705,8 +726,8 @@ public class NewNoteFragment extends Fragment {
                     if (holder != null && holder.subViews != null) {
                         for (SnippetSubView subView : holder.subViews) {
                             if (subView != null && subView.edited == true) {
-                                holder.snippet.updateContent(subView.index, subView.getContent(), subView.type);
-                                dirtySnippet(holder.snippet);
+                                if (holder.snippet.updateContent(subView.index, subView.getContent(), subView.type))
+                                    dirtySnippet(holder.snippet);
                                 subView.edited = false;
                             }
                         }
@@ -955,12 +976,6 @@ public class NewNoteFragment extends Fragment {
             }
         }
 
-        private void setEditText(EditText et, String t) {
-            if (!et.getText().equals(t)) {
-                et.setText(t);
-            }
-        }
-
         public View getItemView(final NoteSnippet snippet, View view, ViewGroup parent) {
             if (snippet == null || getNote() == null) {
                 return view;
@@ -974,7 +989,7 @@ public class NewNoteFragment extends Fragment {
                 holder = new ViewHolder();
                 holder.timestamp = (TextView) view
                         .findViewById(R.id.snippet_meta_data);
-                holder.photo = (ParseImageView) view.findViewById(R.id.snippet_photo);
+                holder.photo = (NoteImageView) view.findViewById(R.id.snippet_photo);
                 holder.snippet = snippet;
                 holder.subViewContainer = (LinearLayout) view.findViewById(R.id.snippet_linear_layout);
                 holder.reminderContainer = (LinearLayout) view.findViewById(R.id.snippet_reminder_linear_layout);
@@ -1011,7 +1026,7 @@ public class NewNoteFragment extends Fragment {
                     case TEXT:
                         SnippetTextSubView subView1 = createNewTextViewIfNotExist(i, holder, holder.subViewContainer, parent);
                         subView1.text.setVisibility(View.VISIBLE);
-                        setEditText(subView1.text, contents.get(i));
+                        NoteViewUtils.setEditText(subView1.text, contents.get(i));
                         subView1.edited = false;
                         break;
                     case CHECK_BOX_ON:
@@ -1020,7 +1035,7 @@ public class NewNoteFragment extends Fragment {
                         subView2.box.setChecked(t == CHECK_BOX_ON);
                         subView2.box.setVisibility(View.VISIBLE);
                         subView2.text.setVisibility(View.VISIBLE);
-                        setEditText(subView2.text, contents.get(i));
+                        NoteViewUtils.setEditText(subView2.text, contents.get(i));
                         subView2.edited = false;
                         break;
                     case DELETED:
@@ -1050,10 +1065,9 @@ public class NewNoteFragment extends Fragment {
             }
 
             if (snippet.getPhotos() != null) {
-                holder.photo.setParseFile(snippet.getPhotos().get(0));
-                holder.photo.loadInBackground(new GetDataCallback() {
+                NoteViewUtils.setAndLoadImageFile(holder.photo, snippet.getPhotos().get(0), new GetDataCallback() {
                     @Override
-                    public void done(byte[] data, ParseException e) {
+                    public void done(byte[] bytes, ParseException e) {
                         holder.photo.setVisibility(View.VISIBLE);
                     }
                 });
@@ -1104,8 +1118,6 @@ public class NewNoteFragment extends Fragment {
                     //TODO: handle invalidated
                 }
             });
-
-            this.snippetListAdapter.loadObjects();
         }
 
         /**

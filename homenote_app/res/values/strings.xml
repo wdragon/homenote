@@ -35,4 +35,7 @@
     <string name="delete">Delete</string>
     <string name="reminder_pick_time">Pick a time to create a reminder.</string>
     <string name="reminder_update_time">Pick a new time to update the reminder.</string>
+    <string name="imagepicker_take_photo">Take Photo</string>
+    <string name="imagepicker_no_images">No Images, try Take Photo</string>
+
 </resources>

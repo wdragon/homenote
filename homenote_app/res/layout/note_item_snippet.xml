@@ -26,7 +26,7 @@
                     android:layout_width="fill_parent"
                     android:layout_height="wrap_content"
                     android:textColor="@color/timestamp"
-                    android:textSize="@dimen/note_item_meta_data_font" />
+                    android:textSize="@dimen/note_item_meta_data_font_size" />
 
             <LinearLayout
                 android:id="@+id/snippet_reminder_linear_layout"
@@ -37,7 +37,7 @@
 
         </LinearLayout>
 
-        <com.parse.ParseImageView
+        <com.parse.homenote.NoteImageView
                 android:id="@+id/snippet_photo"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

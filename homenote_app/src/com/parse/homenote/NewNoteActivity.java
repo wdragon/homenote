@@ -35,7 +35,7 @@ public class NewNoteActivity extends Activity {
 
     private Fragment getFragment() {
         FragmentManager manager = getFragmentManager();
-        return manager.findFragmentById(R.id.fragmentContainer);
+        return manager.findFragmentById(R.id.new_note_fragment);
     }
 
     public void pinSnippets(List<NoteSnippet> snippets) {
@@ -72,9 +72,7 @@ public class NewNoteActivity extends Activity {
             return;
 
         userPreference.setLastOpenedNote(null);
-        if (userPreference.isDraft()) {
-            userPreference.saveInBackground();
-        }
+        userPreference.syncToParseInBackground();
     }
 
     /**
@@ -84,14 +82,12 @@ public class NewNoteActivity extends Activity {
         if (note == null)
             return;
 
-        UserPreference userPreference = UserPreferenceManager.getInstance();
+        final UserPreference userPreference = UserPreferenceManager.getInstance();
         if (userPreference == null)
             return;
 
-        userPreference.setLastOpenedNote(NewNoteActivity.this.getNote());
-        if (userPreference.isDraft()) {
-            userPreference.saveInBackground();
-        }
+        userPreference.setLastOpenedNote(note);
+        userPreference.syncToParseInBackground();
     }
 
     public void deleteNote() throws ParseException {
@@ -150,7 +146,16 @@ public class NewNoteActivity extends Activity {
         if (fragment == null) {
             fragment = new NewNoteFragment();
             fragment.setArguments(getIntent().getExtras());
-            getFragmentManager().beginTransaction().add(R.id.fragmentContainer, fragment).commit();
+            getFragmentManager().beginTransaction().add(R.id.new_note_fragment, fragment).commit();
         }
 	}
+
+    @Override
+    public void onBackPressed() {
+        if(getFragmentManager().getBackStackEntryCount() != 0) {
+            getFragmentManager().popBackStack();
+        } else {
+            super.onBackPressed();
+        }
+    }
 }

@@ -7,7 +7,7 @@
     android:paddingRight="@dimen/activity_horizontal_padding"
     android:paddingTop="@dimen/activity_vertical_padding"
     android:background="@color/note_bg"
-    tools:context=".TodoListActivity" >
+    tools:context=".NoteListActivity" >
 
     <TextView
         android:id="@+id/loggedin_info"
@@ -17,7 +17,7 @@
         android:gravity="center"
         android:text="@string/not_logged_in"
         android:textAlignment="center"
-        android:textSize="18sp"
+        android:textSize="@dimen/note_action_text_font_size"
         android:paddingBottom="@dimen/note_item_padding_top_bottom" />
 
     <ListView
@@ -44,7 +44,7 @@
             android:gravity="center"
             android:text="@string/no_items"
             android:textAlignment="center"
-            android:textSize="20sp" />
+            android:textSize="@dimen/note_action_text_font_size" />
     </LinearLayout>
 
 </RelativeLayout>

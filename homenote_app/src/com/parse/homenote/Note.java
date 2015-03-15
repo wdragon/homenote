@@ -118,8 +118,8 @@ public class Note extends ParseObjectWithUUID {
     }
 
     public void setDraft(boolean isDraft) {
-        put("isDraft", isDraft);
         setNoteUpdatedAt(Calendar.getInstance().getTime());
+        put("isDraft", isDraft);
     }
 
     public NoteSnippet getLastSnippet() { return (NoteSnippet)get("lastSnippet"); }
@@ -127,16 +127,8 @@ public class Note extends ParseObjectWithUUID {
     public NoteSnippet createNewLastSnippet() {
         NoteSnippet last = NoteSnippet.createNew(this);
         put("lastSnippet", last);
+        setDraft(true);
         return last;
-    }
-
-    public boolean setNoteLastSnippet(NoteSnippet lastSnippet) {
-        NoteSnippet snippet = getLastSnippet();
-        if (snippet == null || snippet.getCreatedAt().compareTo(lastSnippet.getCreatedAt()) == -1) {
-            put("lastSnippet", lastSnippet);
-            return true;
-        }
-        return false;
     }
 
     public static ParseQuery<Note> getQuery() {

@@ -307,8 +307,8 @@ public class NoteListActivity extends Activity {
                                         if (e == null) {
                                             // Let adapter know to update view
                                             if (!isFinishing()) {
-                                                noteListAdapter
-                                                        .notifyDataSetChanged();
+                                                //noteListAdapter
+                                                //        .notifyDataSetChanged();
                                             }
                                         } else {
                                             // Reset the is draft flag locally
@@ -506,7 +506,7 @@ public class NoteListActivity extends Activity {
                 holder.views = new ArrayList<>(PREVIEW_MAX_LINE);
                 for(int i=0; i<PREVIEW_MAX_LINE; i++)
                     holder.views.add(null);
-                holder.photo = (ParseImageView) view.findViewById(R.id.note_photo);
+                holder.photo = (NoteImageView) view.findViewById(R.id.note_photo);
                 holder.noteMetaData = (TextView) view.findViewById(R.id.note_meta_data);
                 holder.viewContainer = (LinearLayout) view.findViewById(R.id.note_preview_linear_layout);
 				view.setTag(holder);
@@ -579,8 +579,8 @@ public class NoteListActivity extends Activity {
             }
 
             if (snippet.getPhotos() != null) {
-                holder.photo.setParseFile(snippet.getPhotos().get(0));
-                holder.photo.loadInBackground(new GetDataCallback() {
+                holder.photo.setVisibility(View.VISIBLE);
+                NoteViewUtils.setAndLoadImageFile(holder.photo, snippet.getPhotos().get(0), new GetDataCallback() {
                     @Override
                     public void done(byte[] data, ParseException e) {
                         if (e == null) {
@@ -606,7 +606,7 @@ public class NoteListActivity extends Activity {
         private class ViewHolder {
             ArrayList<NotePreviewSubView> views;
             LinearLayout viewContainer;
-            ParseImageView photo;
+            NoteImageView photo;
             TextView noteMetaData;
             TextView seeMore;
         }

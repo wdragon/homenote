@@ -5,7 +5,7 @@
     android:layout_width="fill_parent"
     android:layout_height="wrap_content"
     android:fontFamily="sans-serif"
-    android:textSize="@dimen/note_item_text_font"
+    android:textSize="@dimen/note_item_text_font_size"
     android:layout_alignParentLeft="true"
     android:ellipsize="end"
     android:maxLines="3" />

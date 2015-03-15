@@ -6,9 +6,14 @@ import android.app.AlertDialog;
 import android.text.TextPaint;
 import android.view.View;
 import android.widget.DatePicker;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.TimePicker;
 
+import com.parse.GetDataCallback;
+import com.parse.ParseException;
+import com.parse.ParseFile;
+import com.parse.ParseImageView;
 import com.parse.ParseUser;
 
 import org.w3c.dom.Text;
@@ -25,10 +30,15 @@ public class NoteViewUtils {
      * Show back button and hide the app title
      * @param activity
      */
-    public static void setUpBackButton(Activity activity) {
+    public static void setUpBackButtonView(Activity activity, String title) {
         ActionBar actionBar = activity.getActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
-        actionBar.setDisplayShowTitleEnabled(false);
+        if (title != null) {
+            actionBar.setTitle(title);
+            actionBar.setDisplayShowTitleEnabled(true);
+        } else {
+            actionBar.setDisplayShowTitleEnabled(false);
+        }
     }
 
     public static String getDisplayName(ParseUser user) {
@@ -117,5 +127,21 @@ public class NoteViewUtils {
 
         alertDialog.setView(dialogView);
         alertDialog.show();
+    }
+
+    public static boolean setEditText(EditText et, String t) {
+        if (!et.getText().equals(t)) {
+            et.setText(t);
+            return true;
+        }
+        return false;
+    }
+
+    public static boolean setAndLoadImageFile(final NoteImageView imageView, ParseFile file, GetDataCallback callback) {
+        imageView.setParseFile(file);
+        if (imageView.hasChanged) {
+            imageView.loadInBackground(callback);
+        }
+        return imageView.hasChanged;
     }
 }

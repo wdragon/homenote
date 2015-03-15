@@ -6,6 +6,7 @@ import com.parse.ParseException;
 import com.parse.ParseObject;
 import com.parse.ParseQuery;
 import com.parse.ParseUser;
+import com.parse.SaveCallback;
 
 import java.util.ArrayList;
 
@@ -24,7 +25,7 @@ public class UserPreference extends ParseObject {
 
     public Note getLastOpenedNote() { return (Note)get(LAST_OPENED_NOTE_KEY); }
 
-    public void setLastOpenedNote(Note note) {
+    public boolean setLastOpenedNote(Note note) {
         if (getLastOpenedNote() != note) {
             if (note == null) {
                 remove(LAST_OPENED_NOTE_KEY);
@@ -32,7 +33,9 @@ public class UserPreference extends ParseObject {
                 put(LAST_OPENED_NOTE_KEY, note);
             }
             setDraft(true);
+            return true;
         }
+        return false;
     }
 
     public void addBlockUser(ParseUser user) {
@@ -61,6 +64,20 @@ public class UserPreference extends ParseObject {
 
     public void setDraft(boolean isDraft) {
         put("isDraft", isDraft);
+    }
+
+    public void syncToParseInBackground() {
+        if (isDraft()) {
+            setDraft(false);
+            saveInBackground(new SaveCallback() {
+                @Override
+                public void done(ParseException e) {
+                    if (e != null) {
+                        setDraft(true);
+                    }
+                }
+            });
+        }
     }
 
     public static ParseQuery<UserPreference> getQuery() { return ParseQuery.getQuery(UserPreference.class); }

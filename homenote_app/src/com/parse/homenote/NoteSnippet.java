@@ -238,9 +238,16 @@ public class NoteSnippet extends ParseObjectWithUUID {
         put(CONTENT_UPDATE_TIME_KEY, contentTs);
     }
 
-    public void updateContent(int idx, String content, int contentType) {
+    /**
+     * @param idx, index of the content to update
+     * @param content, content string
+     * @param contentType
+     * @return boolean to indicate if the snippet is updated
+     */
+    public boolean updateContent(int idx, String content, Integer contentType) {
         if (content == null)
             content = "";
+        boolean updated = false;
         NoteSnippetContentOp op = NoteSnippetContentOp.UPDATE;
         ArrayList<String> contents = getContents();
         ArrayList<Integer> contentTypes = getContentTypes();
@@ -250,17 +257,24 @@ public class NoteSnippet extends ParseObjectWithUUID {
             op = NoteSnippetContentOp.ADD;
             contents.add(null);
         }
-        contents.set(idx, content);
+        if (!content.equals(contents.set(idx, content)))
+            updated = true;
         if (contentTypes == null)
             contentTypes = new ArrayList<Integer>();
         while(contentTypes.size() <= idx) {
             contentTypes.add(null);
         }
-        contentTypes.set(idx, contentType);
-        put(CONTENT_KEY, contents);
-        put(CONTENT_TYPE_KEY, contentTypes);
-        updateContentUpdatedTime(idx);
-        setContentOp(idx, NoteSnippetContentOp.UPDATE);
+        if (!contentType.equals(contentTypes.set(idx, contentType)))
+            updated = true;
+
+        if (updated) {
+            put(CONTENT_KEY, contents);
+            put(CONTENT_TYPE_KEY, contentTypes);
+            updateContentUpdatedTime(idx);
+            setContentOp(idx, op);
+            setDraft(true);
+        }
+        return updated;
     }
 
     public void deleteContent(int idx) {
@@ -322,15 +336,18 @@ public class NoteSnippet extends ParseObjectWithUUID {
     }
 
     public void setDraft(boolean isDraft) {
-        put("isDraft", isDraft);
         setSnippetUpdatedAt(Calendar.getInstance().getTime());
+        put("isDraft", isDraft);
     }
 
     public static ParseQuery<NoteSnippet> getQuery() {
         return ParseQuery.getQuery(NoteSnippet.class);
     }
 
-    public void setPhotos(ArrayList<ParseFile> photos) { put("photos", photos); }
+    public void setPhotos(ArrayList<ParseFile> photos) {
+        put("photos", photos);
+        setDraft(true);
+    }
 
     public ArrayList<ParseFile> getPhotos() { return (ArrayList<ParseFile>)get("photos"); }
 }

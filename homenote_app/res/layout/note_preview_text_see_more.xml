@@ -3,7 +3,7 @@
     android:layout_width="fill_parent"
     android:layout_height="wrap_content"
     android:fontFamily="sans-serif"
-    android:textSize="@dimen/note_item_text_font"
+    android:textSize="@dimen/note_item_text_font_size"
     android:layout_alignParentLeft="true"
     android:text="@string/see_more"
     android:paddingLeft="@dimen/note_item_padding_left_right" />

@@ -48,3 +48,6 @@ build
 parse_cloudcode/config/*
 parse_cloudcode/public/*
 
+# thirdparty
+thirdparty/*
+/thridparty/

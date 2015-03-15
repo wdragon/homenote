@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="0.5"
+        android:layout_marginTop="@dimen/note_item_margin"
+        android:layout_marginLeft="@dimen/note_item_margin"
+        android:layout_marginRight="@dimen/note_item_margin"
+        android:gravity="center_horizontal|center_vertical"
+        android:orientation="vertical" >
+
+        <LinearLayout
+            android:id="@+id/imagepicker_camera_button"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:focusable="true"
+            android:clickable="true"
+            android:background="@drawable/bg_camera_button"
+            android:gravity="center_horizontal|center_vertical"
+            android:orientation="vertical">
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_action_camera" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/imagepicker_take_photo"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="@dimen/note_item_margin"
+        android:layout_marginLeft="@dimen/note_item_margin"
+        android:layout_marginRight="@dimen/note_item_margin"
+        android:layout_weight="0.5">
+
+        <ListView
+            android:id="@+id/imagepicker_image_list"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:layout_alignParentBottom="true"
+            />
+
+        <LinearLayout
+            android:id="@+id/imagepicker_no_images"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical|center"
+            android:orientation="vertical" >
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif"
+                android:gravity="center"
+                android:text="@string/imagepicker_no_images"
+                android:textAlignment="center"
+                android:textSize="@dimen/note_action_text_font_size"
+                android:textColor="@color/white"/>
+        </LinearLayout>
+
+    </RelativeLayout>
+
+</LinearLayout>

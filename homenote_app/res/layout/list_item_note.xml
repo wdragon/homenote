@@ -11,10 +11,10 @@
         android:paddingBottom="@dimen/note_item_padding_top_bottom"
         android:paddingLeft="@dimen/note_item_padding_left_right"
         android:paddingRight="@dimen/note_item_padding_left_right"
-        android:background="@color/color_note_item"
+        android:background="@drawable/bg_color_note_item"
         android:orientation="vertical" >
 
-        <com.parse.ParseImageView
+        <com.parse.homenote.NoteImageView
             android:id="@+id/note_photo"
             android:layout_width="match_parent"
             android:layout_height="80dp"
@@ -24,7 +24,7 @@
             android:paddingBottom="@dimen/note_component_padding"
             android:cropToPadding="false"
             android:adjustViewBounds="true"
-            android:scaleType="center"
+            android:scaleType="centerCrop"
             android:visibility="gone" />
 
         <LinearLayout
@@ -44,7 +44,7 @@
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:textColor="@color/timestamp"
-                android:textSize="@dimen/note_item_meta_data_font" />
+                android:textSize="@dimen/note_item_meta_data_font_size" />
         </LinearLayout>
 
     </LinearLayout>
