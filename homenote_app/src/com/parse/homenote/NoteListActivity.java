@@ -489,7 +489,8 @@ public class NoteListActivity extends Activity {
         }
 
         private void setViewText(TextView view, Note note, String text) {
-            view.setText(text);
+            if (!view.getText().equals(text))
+                view.setText(text);
             if (note.isDraft()) {
                 view.setTypeface(null, Typeface.ITALIC);
             } else {
@@ -522,7 +523,7 @@ public class NoteListActivity extends Activity {
             int lineCount = 0;
             boolean lastLineEllipsized = false;
             for (int contentIdx=0; contentIdx<snippet.size(); contentIdx++) {
-                if (lineCount >= PREVIEW_MAX_LINE || viewIdx > PREVIEW_MAX_LINE) {
+                if (lineCount >= PREVIEW_MAX_LINE || viewIdx >= PREVIEW_MAX_LINE) {
                     if (!lastLineEllipsized) {
                         addSeeMore(holder, parent);
                     }

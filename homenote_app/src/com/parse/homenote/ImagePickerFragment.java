@@ -214,6 +214,9 @@ public class ImagePickerFragment extends Fragment
         ArrayList<ParseFile> photos = new ArrayList<ParseFile>();
         photos.add(photoFile);
         snippet.setPhotos(photos);
+
+        if (activity.getNote().getCursorSnippet() != snippet)
+            activity.getNote().setCursorPosition(snippet, 0, -1);
         activity.addDirtySnippet(snippet);
         activity.saveNote(false);
 

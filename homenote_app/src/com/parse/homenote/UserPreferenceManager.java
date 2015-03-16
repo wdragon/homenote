@@ -1,6 +1,7 @@
 package com.parse.homenote;
 
 import com.parse.GetCallback;
+import com.parse.ParseAnonymousUtils;
 import com.parse.ParseException;
 import com.parse.ParseQuery;
 import com.parse.ParseUser;
@@ -30,6 +31,11 @@ public class UserPreferenceManager {
     }
 
     private static void fetchInstance(boolean inBackGround) {
+        //TODO: No data fetching for anonymous users?
+        // check for objectid of parseuser
+        if (ParseAnonymousUtils.isLinked(ParseUser.getCurrentUser()))
+            return;
+
         if (instance == null) {
             ParseQuery<UserPreference> prefQuery = UserPreference.getQuery();
             prefQuery.include(UserPreference.LAST_OPENED_NOTE_KEY);
