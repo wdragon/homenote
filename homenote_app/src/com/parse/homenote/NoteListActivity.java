@@ -586,9 +586,9 @@ public class NoteListActivity extends Activity {
                     public void done(byte[] data, ParseException e) {
                         if (e == null) {
                             if (note.isDraft()) {
-                                NoteUtils.setImageAlpha(holder.photo, 128);
+                                NoteViewUtils.setImageAlpha(holder.photo, 128);
                             } else {
-                                NoteUtils.setImageAlpha(holder.photo, 255);
+                                NoteViewUtils.setImageAlpha(holder.photo, 255);
                             }
                             holder.photo.setVisibility(View.VISIBLE);
                         } else {

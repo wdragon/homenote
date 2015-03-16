@@ -122,15 +122,6 @@ public class NoteUtils {
         note.unpin();
     }
 
-    public static void setImageAlpha(ImageView photo, int alpha) {
-        int currentapiVersion = android.os.Build.VERSION.SDK_INT;
-        if (currentapiVersion >= android.os.Build.VERSION_CODES.JELLY_BEAN){
-            photo.setImageAlpha(alpha);
-        } else{
-            photo.setAlpha(alpha);
-        }
-    }
-
     public static boolean isNull(Object obj) {
         return (obj == null || obj == JSONObject.NULL);
     }

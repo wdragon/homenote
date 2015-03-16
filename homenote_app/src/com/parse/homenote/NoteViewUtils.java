@@ -7,6 +7,7 @@ import android.text.TextPaint;
 import android.view.View;
 import android.widget.DatePicker;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.TimePicker;
 
@@ -143,5 +144,14 @@ public class NoteViewUtils {
             imageView.loadInBackground(callback);
         }
         return imageView.hasChanged;
+    }
+
+    public static void setImageAlpha(ImageView photo, int alpha) {
+        int currentapiVersion = android.os.Build.VERSION.SDK_INT;
+        if (currentapiVersion >= android.os.Build.VERSION_CODES.JELLY_BEAN){
+            photo.setImageAlpha(alpha);
+        } else{
+            photo.setAlpha(alpha);
+        }
     }
 }

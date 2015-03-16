@@ -22,6 +22,8 @@ import android.provider.MediaStore;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
@@ -30,6 +32,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.parse.ParseException;
@@ -55,8 +58,12 @@ public class ImagePickerFragment extends Fragment
     private Uri fileUri;
 
     private LayoutInflater inflater;
+    private TextView imageListEmptyText;
     private ListView imageListView;
     ImageListAdapter imageAdapter;
+    Menu menu;
+
+    private ArrayList<String> selectedPhotos;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -70,7 +77,9 @@ public class ImagePickerFragment extends Fragment
         final Activity activity = getActivity();
         View v = inflater.inflate(R.layout.fragment_image_picker, parent, false);
         imageListView = (ListView) v.findViewById(R.id.imagepicker_image_list);
-        imageListView.setEmptyView(v.findViewById(R.id.imagepicker_no_images));
+        View emptyView = v.findViewById(R.id.imagepicker_no_images);
+        imageListView.setEmptyView(emptyView);
+        imageListEmptyText = (TextView) v.findViewById(R.id.imagepicker_no_images_text);
         imageAdapter = new ImageListAdapter(activity,
                 R.layout.imagepicker_item_image,
                 null,
@@ -105,6 +114,7 @@ public class ImagePickerFragment extends Fragment
     public void onStart() {
         super.onStart();
         getLoaderManager().initLoader(0, null, this);
+        imageListEmptyText.setText(R.string.imagepicker_loading);
     }
 
     @Override
@@ -114,10 +124,22 @@ public class ImagePickerFragment extends Fragment
     }
 
     @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater1) {
+        inflater1.inflate(R.menu.menu_imagepicker, menu);
+        this.menu = menu;
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case android.R.id.home:
                 getActivity().onBackPressed();
+                return true;
+            case R.id.action_imagepicker_add_photo:
+                if (selectedPhotos.size() > 0) {
+                    //TODO: save multiple images?
+                    savePhotoAndExit(selectedPhotos.get(0));
+                }
                 return true;
         }
 
@@ -164,30 +186,28 @@ public class ImagePickerFragment extends Fragment
                 cursor.moveToFirst();
                 String realPath = cursor.getString(column_index_data);
                 if (realPath != null) {
-                    Bitmap bitmap = null;
-                    //TODO: store full size photo?
-                    int width = PhotoUtils.PHOTO_PREVIEW_WIDTH;
-                    int rotation = PhotoUtils.getRotationFromExif(realPath);
-                    bitmap = PhotoUtils.getThumbnail(new File(realPath), width, rotation);
-                    savePhoto(bitmap);
-                    bitmap.recycle();
+                    savePhotoAndExit(realPath);
                 }
             }
         }
     }
 
-    private void savePhoto(Bitmap noteImage) {
+    private void savePhotoAndExit(String photoPath) {
+        Bitmap noteImage = null;
+        int width = PhotoUtils.PHOTO_PREVIEW_WIDTH;
+        int rotation = PhotoUtils.getRotationFromExif(photoPath);
+        noteImage = PhotoUtils.getThumbnail(new File(photoPath), width, rotation);
 
+        /*
         Bitmap noteImageScaled = noteImage;
         if (noteImage.getWidth() > PhotoUtils.PHOTO_DEFAULT_WIDTH) {
             int width = PhotoUtils.PHOTO_DEFAULT_WIDTH;
             int height = width * noteImage.getHeight() / noteImage.getWidth();
             noteImageScaled = Bitmap.createScaledBitmap(noteImage, width, height, false);
-        }
+        }*/
 
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        noteImageScaled.compress(Bitmap.CompressFormat.JPEG, 100, bos);
-
+        noteImage.compress(Bitmap.CompressFormat.JPEG, 100, bos);
         byte[] byteData = bos.toByteArray();
 
         // Save the scaled image to Parse
@@ -204,6 +224,8 @@ public class ImagePickerFragment extends Fragment
                 }
             }
         });
+
+        noteImage.recycle();
 
         //TODO: save full res image to server
     }
@@ -243,10 +265,12 @@ public class ImagePickerFragment extends Fragment
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
         // Swap the new cursor in.  (The framework will take care of closing the
         // old cursor once we return.)
-        imageAdapter.swapCursor(data);
-
-        // The list should now be shown.
-        imageListView.setVisibility(View.VISIBLE);
+        if (data != null && data.getCount() > 0) {
+            imageAdapter.swapCursor(data);
+            imageListView.setVisibility(View.VISIBLE);
+        } else {
+            imageListEmptyText.setText(R.string.imagepicker_no_images);
+        }
     }
 
     public void onLoaderReset(Loader<Cursor> loader) {
@@ -271,18 +295,47 @@ public class ImagePickerFragment extends Fragment
         @Override
         public View newView(Context context, Cursor cursor, ViewGroup parent) {
             View view = inflater.inflate(R.layout.imagepicker_item_image, parent, false);
-            ViewHolder holder = new ViewHolder();
+            final ViewHolder holder = new ViewHolder();
             holder.image = (ImageView) view.findViewById(R.id.imagepicker_image);
+            holder.checkBox = (CheckBox) view.findViewById(R.id.imagepicker_checkbox);
+            int dataIdx = cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA);
+            holder.imageLocation = cursor.getString(dataIdx);
             view.setTag(holder);
+
+            holder.checkBox.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (selectedPhotos == null) {
+                        selectedPhotos = new ArrayList<String>();
+                    }
+                    if (holder.checkBox.isChecked()) {
+                        NoteViewUtils.setImageAlpha(holder.image, 128);
+                        selectedPhotos.add(holder.imageLocation);
+                    } else {
+                        NoteViewUtils.setImageAlpha(holder.image, 255);
+                        selectedPhotos.remove(holder.imageLocation);
+                    }
+                    MenuItem addPhoto = menu.findItem(R.id.action_imagepicker_add_photo);
+                    if (addPhoto != null) {
+                        if (selectedPhotos.size() > 0) {
+                            addPhoto.setTitle(
+                                    String.format(getResources().getString(R.string.action_imagepicker_add_photo_enabled), selectedPhotos.size())
+                            );
+                            addPhoto.setEnabled(true);
+                        } else {
+                            addPhoto.setTitle(R.string.action_imagepicker_add_photo);
+                            addPhoto.setEnabled(false);
+                        }
+                    }
+                }
+            });
             return view;
         }
 
         @Override
         public void bindView(View view, Context context, Cursor cursor) {
-            int dataIdx = cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA);
-            String imageLocation = cursor.getString(dataIdx);
-            File imageFile = new File(imageLocation);
             ViewHolder holder = (ViewHolder) view.getTag();
+            File imageFile = new File(holder.imageLocation);
             if (imageFile.exists()) {
                 int width = PhotoUtils.PHOTO_PREVIEW_WIDTH;
                 int rotation = PhotoUtils.getRotationFromExif(imageFile.getAbsolutePath());
@@ -295,7 +348,8 @@ public class ImagePickerFragment extends Fragment
 
         private class ViewHolder {
             ImageView image;
-            CheckBox box;
+            CheckBox checkBox;
+            String imageLocation;
         }
     }
 }

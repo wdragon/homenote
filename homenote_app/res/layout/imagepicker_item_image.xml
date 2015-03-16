@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:gravity="center_vertical">
@@ -13,4 +13,13 @@
         android:scaleType="fitCenter"
         android:visibility="invisible" />
 
-</RelativeLayout>
+    <CheckBox
+        android:id="@+id/imagepicker_checkbox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|right"
+        android:background="@drawable/bg_checkbox_white_border"
+        android:layout_marginTop="20dp"
+        android:layout_marginRight="20dp"/>
+    
+</FrameLayout>

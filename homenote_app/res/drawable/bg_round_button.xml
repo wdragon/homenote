@@ -3,6 +3,6 @@
     android:shape="oval">
     <solid android:color="@color/note_item_bg"/>
     <stroke
-        android:width="@dimen/note_item_border_width"
+        android:width="@dimen/button_border_width"
         android:color="@color/note_item_border" />
 </shape>

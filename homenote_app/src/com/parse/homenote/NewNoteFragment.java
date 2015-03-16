@@ -191,10 +191,12 @@ public class NewNoteFragment extends Fragment {
 
         if (item.getItemId() == R.id.action_camera) {
             startImagePicker();
+            return true;
         }
 
         if (item.getItemId() == R.id.action_checkbox) {
             toggleCheckbox();
+            return true;
         }
 
         if (item.getItemId() == android.R.id.home || item.getItemId() == R.id.action_save) {
@@ -211,18 +213,22 @@ public class NewNoteFragment extends Fragment {
 
             if (activity.isNoteModified())
                 endSaving();
+            return true;
         }
 
         if (item.getItemId() == R.id.action_share) {
             startShareDialog();
+            return true;
         }
 
         if (item.getItemId() == R.id.action_reminder) {
             toggleReminder();
+            return true;
         }
 
         if (item.getItemId() == R.id.action_discard) {
             startDiscardDialog();
+            return true;
         }
 
         return super.onOptionsItemSelected(item);
@@ -348,12 +354,14 @@ public class NewNoteFragment extends Fragment {
         NoteViewUtils.showDateTimePicker(getActivity(), timeInMillis, new NoteViewUtils.DateTimePickerCallback() {
             @Override
             public void onTimeSelected(long timeInMillis) {
-                if (reminder == null) {
-                    snippet.addReminder(NoteReminder.createNew(timeInMillis, ParseUser.getCurrentUser(), snippet, getNote()));
+                NoteReminder validReminder = reminder;
+                if (validReminder == null) {
+                    validReminder = NoteReminder.createNew(timeInMillis, ParseUser.getCurrentUser(), snippet, getNote());
+                    snippet.addReminder(validReminder);
                 } else {
-                    reminder.reschedule(timeInMillis);
+                    validReminder.reschedule(timeInMillis);
                 }
-                reminder.saveEventually(new SaveCallback() {
+                validReminder.saveEventually(new SaveCallback() {
                     @Override
                     public void done(ParseException e) {
                         if (e == null)

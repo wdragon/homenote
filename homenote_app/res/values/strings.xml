@@ -37,5 +37,8 @@
     <string name="reminder_update_time">Pick a new time to update the reminder.</string>
     <string name="imagepicker_take_photo">Take Photo</string>
     <string name="imagepicker_no_images">No Images, try Take Photo</string>
+    <string name="imagepicker_loading">Loading images from Gallery...</string>
+    <string name="action_imagepicker_add_photo">Add</string>
+    <string name="action_imagepicker_add_photo_enabled">Add (%1$d)</string>
 
 </resources>
