@@ -36,9 +36,8 @@ public class Note extends ParseObjectWithUUID {
         setUUIDString();
         setNoteCreatedAt();
         setCreator(ParseUser.getCurrentUser());
-        ArrayList<ParseUser> authors = new ArrayList<ParseUser>();
-        authors.add(ParseUser.getCurrentUser());
-        setAuthors(authors);
+        addAuthor(ParseUser.getCurrentUser());
+        setACL(new ParseACL(ParseUser.getCurrentUser()));
         setDraft(true);
     }
 
@@ -50,8 +49,31 @@ public class Note extends ParseObjectWithUUID {
 		put("creator", currentUser);
 	}
 
-    public void setAuthors(ArrayList<ParseUser> authors) {
-        put("authors", authors);
+    public boolean addAuthor(ParseUser author) {
+        ArrayList<ParseUser> authors = getAuthors();
+        if (authors == null) {
+            authors = new ArrayList<>();
+            put("authors", authors);
+        }
+        if (!authors.contains(author)) {
+            authors.add(author);
+            setDraft(true);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean removeAuthor(ParseUser author) {
+        ArrayList<ParseUser> authors = getAuthors();
+        if (authors == null) {
+            return false;
+        }
+        if (authors.contains(author)) {
+            authors.remove(author);
+            setDraft(true);
+            return true;
+        }
+        return false;
     }
 
     public ArrayList<ParseUser> getAuthors() { return (ArrayList<ParseUser>)get("authors"); }
@@ -132,12 +154,35 @@ public class Note extends ParseObjectWithUUID {
     }
 
     public static ParseQuery<Note> getQuery() {
-		return ParseQuery.getQuery(Note.class);
+        return ParseQuery.getQuery(Note.class);
 	}
 
-    public static ParseQuery<Note> getQueryIncludeLastSnippet() {
-        ParseQuery<Note> query = ParseQuery.getQuery(Note.class);
+    public static ParseQuery<Note> getQueryForRender() {
+        return getQueryForRender(null);
+    }
+
+    public static ParseQuery<Note> getQueryForRender(ParseQuery<Note> query) {
+        if (query == null)
+            query = getQuery();
         query.include("lastSnippet");
+        query.include("creator");
+        query.include("authors");
         return query;
+    }
+
+    public boolean isDataReadyForRender() {
+        if (!isDataAvailable())
+            return false;
+        if (!getLastSnippet().isDataAvailable())
+            return false;
+        if (!getCreator().isDataAvailable())
+            return false;
+        for (ParseUser user : getAuthors()) {
+            if (!user.isDataAvailable())
+                return false;
+        }
+        if (!getCursorSnippet().isDataAvailable())
+            return false;
+        return true;
     }
 }

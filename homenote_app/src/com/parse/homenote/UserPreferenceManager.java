@@ -40,6 +40,7 @@ public class UserPreferenceManager {
             ParseQuery<UserPreference> prefQuery = UserPreference.getQuery();
             prefQuery.include(UserPreference.LAST_OPENED_NOTE_KEY);
             prefQuery.include(UserPreference.BLOCKED_USERS_KEY);
+            prefQuery.include(UserPreference.CLOSE_USERS_KEY);
             prefQuery.whereEqualTo("creator", ParseUser.getCurrentUser());
             if (inBackGround) {
                 prefQuery.getFirstInBackground(new GetCallback<UserPreference>() {

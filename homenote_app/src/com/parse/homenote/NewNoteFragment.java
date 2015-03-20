@@ -6,8 +6,10 @@ import android.app.FragmentTransaction;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.database.DataSetObserver;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.text.Editable;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -19,8 +21,6 @@ import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.*;
 import com.parse.*;
-
-import org.json.JSONException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,6 +40,8 @@ public class NewNoteFragment extends Fragment {
     private SnippetListView snippetListView;
     private NoteSnippetListAdapter snippetListAdapter;
     private Menu menu;
+    private TextView headerTextView;
+    private ProgressBar progressBar;
 
     NoteTaskRateTracker loadSnippetInBackground;
 
@@ -48,14 +50,12 @@ public class NewNoteFragment extends Fragment {
         super.onCreate(savedInstanceState);
 
         loadSnippetInBackground = new NoteTaskRateTracker();
-        loadSnippetInBackground.setTask(new Runnable() {
+        loadSnippetInBackground.setTask(new NoteTaskRateTracker.NoteTask() {
             @Override
-            public void run() {
+            public boolean run() {
                 if (getNote() != null && getNote().getObjectId() != null) {
-                    ParseQuery<NoteSnippet> query = NoteSnippet.getQuery();
+                    ParseQuery<NoteSnippet> query = NoteSnippet.getQueryForRender();
                     query.whereEqualTo("noteUuid", getNote().getUUIDString());
-                    query.include(NoteSnippet.REMINDER_KEY + ".from");
-                    query.include(NoteSnippet.REMINDER_KEY + ".to");
                     query.findInBackground(new FindCallback<NoteSnippet>() {
                         @Override
                         public void done(List<NoteSnippet> noteSnippets, ParseException e) {
@@ -63,7 +63,7 @@ public class NewNoteFragment extends Fragment {
                                 getNoteActivity().pinSnippets(noteSnippets);
                                 if (snippetListAdapter != null) {
                                     // refresh view is view is there
-                                    snippetListAdapter.notifyDataSetChanged();
+                                    snippetListAdapter.loadObjects();
                                 }
                             } else {
                                 Toast.makeText(getActivity(),
@@ -72,6 +72,9 @@ public class NewNoteFragment extends Fragment {
                             }
                         }
                     });
+                    return true;
+                } else {
+                    return false;
                 }
             }
         });
@@ -82,6 +85,8 @@ public class NewNoteFragment extends Fragment {
                              Bundle SavedInstanceState) {
         this.inflater = inflater;
         final View v = inflater.inflate(R.layout.fragment_new_note, parent, false);
+        this.progressBar = (ProgressBar) v.findViewById(R.id.noteProgressBar);
+        this.headerTextView = (TextView) v.findViewById(R.id.note_prompt);
         final NewNoteActivity activity = getNoteActivity();
 
         setHasOptionsMenu(true);
@@ -97,7 +102,7 @@ public class NewNoteFragment extends Fragment {
         }
 
         if (noteId != null) {
-            ParseQuery<Note> query = Note.getQueryIncludeLastSnippet();
+            ParseQuery<Note> query = Note.getQueryForRender();
             query.fromLocalDatastore();
             query.whereEqualTo("uuid", noteId);
             try {
@@ -112,10 +117,7 @@ public class NewNoteFragment extends Fragment {
                         Toast.LENGTH_LONG).show();
             }
         } else if (noteShareId != null) {
-            ParseQuery<NoteShare> query = NoteShare.getQuery();
-            query.include("note");
-            query.include("from");
-            query.include("note.lastSnippet");
+            ParseQuery<NoteShare> query = NoteShare.getQueryForRender();
             try {
                 final NoteShare noteShare = query.get(noteShareId);
                 final Note note = noteShare.getNote();
@@ -130,12 +132,13 @@ public class NewNoteFragment extends Fragment {
         } else if (noteReminderId != null) {
             ParseQuery<NoteReminder> innerQuery = NoteReminder.getQuery();
             innerQuery.whereEqualTo("objectId", noteReminderId);
-            ParseQuery<Note> queryReminded = Note.getQueryIncludeLastSnippet();
+            ParseQuery<Note> queryReminded = Note.getQueryForRender();
             queryReminded.whereMatchesKeyInQuery("uuid", "noteUUID", innerQuery);
             try {
                 Note note = queryReminded.getFirst();
                 if (!activity.isFinishing()) {
                     activity.setNote(note);
+                    //activity.saveNote(false);
                     setupSnippetsView(note, v);
                 }
 
@@ -217,7 +220,7 @@ public class NewNoteFragment extends Fragment {
         }
 
         if (item.getItemId() == R.id.action_share) {
-            startShareDialog();
+            showShareDialog();
             return true;
         }
 
@@ -232,6 +235,18 @@ public class NewNoteFragment extends Fragment {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private void showHeaderProgressBar(String message) {
+        if (message != null) {
+            this.headerTextView.setText(message);
+        }
+        this.progressBar.setVisibility(View.VISIBLE);
+    }
+
+    private void hideHeaderProgressBar() {
+        this.headerTextView.setText(R.string.note_prompt);
+        this.progressBar.setVisibility(View.INVISIBLE);
     }
 
     private void startSaving() {
@@ -380,36 +395,58 @@ public class NewNoteFragment extends Fragment {
                             snippetListAdapter.notifyDataSetChanged();
                         }
                     });
-                    reminder.unpinInBackground();
+                    reminder.unpinInBackground(HomeNoteApplication.NOTE_GROUP_NAME);
                 }
             }
         });
     }
 
-    private void startShareDialog() {
-        AlertDialog.Builder alert = new AlertDialog.Builder(getView().getContext());
+    private void showShareDialog() {
+        snippetListAdapter.save();
+        snippetListAdapter.saveCursorPosition();
+
+        final AlertDialog.Builder alert = new AlertDialog.Builder(getView().getContext());
         alert.setMessage("Share note with:");
 
-        final EditText input = new EditText(getView().getContext());
-        alert.setView(input);
+        ArrayList<ParseUser> authors = getNote().getAuthors();
+        ParseUser creator = getNote().getCreator();
+        final ArrayList<ParseUser> nonCreatorAuthors = new ArrayList<>(authors);
+        nonCreatorAuthors.remove(creator);
 
-        alert.setPositiveButton("Share", new DialogInterface.OnClickListener() {
+        View shareView = inflater.inflate(R.layout.dialog_share_note, null, false);
+        alert.setView(shareView);
+
+        final UsersAutoCompleteAdapter adapter = new UsersAutoCompleteAdapter(getView().getContext(),
+                android.R.layout.simple_dropdown_item_1line);
+        final UserAutoCompleteView textView = (UserAutoCompleteView) shareView.findViewById(R.id.share_typeahead);
+        textView.setAdapter(adapter);
+        adapter.setExcludeList(textView.getObjects());
+        for (ParseUser user : nonCreatorAuthors) {
+            textView.addObject(user);
+        }
+        textView.post(new Runnable() {
+            @Override
+            public void run() {
+                InputMethodManager keyboard = (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
+                keyboard.showSoftInput(textView, 0);
+            }
+        });
+        alert.setPositiveButton("Update", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int whichButton) {
-                String friendName = input.getText().toString();
-                ParseQuery<ParseUser> query = ParseUser.getQuery();
-                query.whereEqualTo("username", friendName);
-                query.getFirstInBackground(new GetCallback<ParseUser>() {
-                    public void done(ParseUser user, ParseException e) {
-                        if (e == null) {
-                            // The query was successful.
-                            shareNote(ParseUser.getCurrentUser(), user);
-                        } else {
-                            Toast.makeText(getActivity(),
-                                    "Error sharing: " + e.getMessage(),
-                                    Toast.LENGTH_LONG).show();
-                        }
-                    }
-                });
+                ArrayList<ParseUser> toRemovedUsers = (ArrayList<ParseUser>) nonCreatorAuthors.clone();
+                ArrayList<ParseUser> toShareUsers = textView.getSelectedUsers();
+                toRemovedUsers.removeAll(toShareUsers);
+                toShareUsers.removeAll(nonCreatorAuthors);
+
+                if (toRemovedUsers.isEmpty() && toShareUsers.isEmpty())
+                    return;
+
+                showHeaderProgressBar("Update sharing...");
+                UpdateNoteSharingTaskParams params = new UpdateNoteSharingTaskParams();
+                params.toRemoveUsers = toRemovedUsers;
+                params.toShareUsers = toShareUsers;
+                UpdateNoteSharingTask task = new UpdateNoteSharingTask();
+                task.execute(params);
             }
         });
 
@@ -431,6 +468,7 @@ public class NewNoteFragment extends Fragment {
                 try {
                     getNoteActivity().clearLastOpenedNote();
                     getNoteActivity().deleteNote();
+                    //TODO: Delete snippets
                     endDeleting();
                 } catch (ParseException e) {
                     Toast.makeText(getNoteActivity(),
@@ -453,27 +491,16 @@ public class NewNoteFragment extends Fragment {
         if (noteShare.getConfirmed() == false) {
             final NewNoteActivity activity = getNoteActivity();
             AlertDialog.Builder alert = new AlertDialog.Builder(activity);
-            alert.setMessage(noteShare.getFrom().getUsername() + " shared a note to you:");
+            alert.setMessage(noteShare.getFrom().getUsername() + " shared a note to you.");
 
-            alert.setPositiveButton("Accept to Edit", new DialogInterface.OnClickListener() {
+            alert.setPositiveButton("Accept", new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int whichButton) {
                     noteShare.setConfirmed(true);
-                    noteShare.saveInBackground(new SaveCallback() {
-                        @Override
-                        public void done(ParseException e) {
-                            if (e != null) {
-                                Toast.makeText(activity,
-                                        "Unable to accept note from " + noteShare.getFrom().getUsername(),
-                                        Toast.LENGTH_LONG).show();
-                            }
-                        }
-                    });
+                    noteShare.saveEventually();
                     Note note = getNote();
-                    ArrayList<ParseUser> authors = note.getAuthors();
-                    if (!authors.contains(ParseUser.getCurrentUser())) {
-                        authors.add(ParseUser.getCurrentUser());
-                        note.setAuthors(authors);
-                        note.setDraft(true);
+                    if (note.addAuthor(ParseUser.getCurrentUser())) {
+                        activity.saveNote(false);
+                        snippetListAdapter.notifyDataSetChanged();
                         updateActions(note);
                     }
                 }
@@ -539,71 +566,73 @@ public class NewNoteFragment extends Fragment {
         alert.show();
     }
 
-    protected void shareNote(final ParseUser from, final ParseUser to) {
-
-        final NewNoteActivity activity = getNoteActivity();
-        final Note note = activity.getNote();
-        final NoteSnippet lastSnippet = note.getLastSnippet();
+    protected void stopSharing(List<ParseUser> toRemoveUsers) throws ParseException {
+        Note note = getNote();
         ArrayList<ParseUser> authors = note.getAuthors();
-        if (authors.contains(to)) {
-            Toast.makeText(getActivity(),
-                    to.getUsername() + " already has access to this note",
-                    Toast.LENGTH_LONG).show();
-            return;
-        }
+        ParseUser creator = getNote().getCreator();
+        if (!NoteUtils.isNull(authors) && !toRemoveUsers.isEmpty()) {
+            if (ParseUser.getCurrentUser() == creator) {
+                ParseACL noteACL = getNote().getACL();
+                for (ParseUser user : authors) {
+                    if (user != creator) {
+                        if (toRemoveUsers.contains(user)) {
+                            note.removeAuthor(user);
+                            noteACL.setReadAccess(user, false);
+                            noteACL.setWriteAccess(user, false);
+                        }
+                    }
+                }
+                getNote().setACL(noteACL);
 
-        // set up the query on the NoteShare table
+                ParseQuery<NoteShare> query = NoteShare.getQuery();
+                query.whereContainedIn("to", toRemoveUsers);
+                query.whereEqualTo("noteUUID", note.getUUIDString());
+                List<NoteShare> noteShares = query.find();
+                NoteShare.deleteAllInBackground(noteShares);
+            } else {
+                throw new ParseException(ParseException.OPERATION_FORBIDDEN, "Only creator can remove users.");
+            }
+        }
+    }
+
+    protected void shareNote(final ParseUser from, final List<ParseUser> toUsers) throws ParseException {
+        if (toUsers.isEmpty())
+            return;
+
+        final Note note = getNote();
         ParseQuery<NoteShare> query = NoteShare.getQuery();
         query.whereEqualTo("from", from);
-        query.whereEqualTo("to", to);
+        query.whereContainedIn("to", toUsers);
         query.whereEqualTo("noteUUID", note.getUUIDString());
-        // execute the query
-        query.getFirstInBackground(new GetCallback<NoteShare>() {
-            public void done(NoteShare noteShare, ParseException e) {
-                if (e == null) {
-                    Toast.makeText(getActivity(),
-                            "Already shared to : " + to.getUsername(),
-                            Toast.LENGTH_LONG).show();
-                } else {
-                    final NoteShare newNoteShare = new NoteShare();
-                    int ts = (int) (System.currentTimeMillis() / 1000L);
-                    newNoteShare.setTimestamp(ts);
-                    newNoteShare.setFrom(from);
-                    newNoteShare.setTo(to);
-                    newNoteShare.setConfirmed(false);
-                    newNoteShare.setNote(note);
-                    newNoteShare.setNoteUUID(note.getUUIDString());
-                    final ParseACL groupACL = new ParseACL();
-                    groupACL.setReadAccess(from, true);
-                    groupACL.setWriteAccess(from, true);
-                    groupACL.setReadAccess(to, true);
-                    groupACL.setWriteAccess(to, true);
-                    newNoteShare.setACL(groupACL);
-                    newNoteShare.saveInBackground(new SaveCallback() {
-                        @Override
-                        public void done(ParseException e) {
-                            if (e == null) {
-                                Toast.makeText(getActivity(),
-                                        "Waiting for " + to.getUsername() + " to accept",
-                                        Toast.LENGTH_LONG).show();
-                                note.setACL(groupACL);
-                                note.setDraft(true);
-                                String message = from.getUsername() + " shared a note: " + lastSnippet.getContents();
-                                try {
-                                    NotificationUtils.notifyUserInvite(to, message, newNoteShare.getObjectId());
-                                } catch (JSONException e1) {
-                                    e1.printStackTrace();
-                                }
-                            } else {
-                                Toast.makeText(getActivity(),
-                                        "Unable to share note " + to.getUsername(),
-                                        Toast.LENGTH_LONG).show();
-                            }
-                        }
-                    });
+        List<NoteShare> noteShares = query.find();
+        final ArrayList<NoteShare> newNoteShares = new ArrayList<NoteShare>();
+        for (ParseUser toUser : toUsers) {
+            boolean shared = false;
+            for (NoteShare share : noteShares) {
+                if (share.getTo() == toUser) {
+                    shared = true;
+                    break;
                 }
             }
-        });
+            if (!shared) {
+                newNoteShares.add(NoteShare.createNew(from, toUser, note));
+            }
+        }
+
+        if (newNoteShares.size() > 0) {
+            NoteShare.saveAll(newNoteShares);
+            ParseACL noteACL = note.getACL();
+            for (NoteShare noteShare : newNoteShares) {
+                // update note acl
+                noteACL.setReadAccess(noteShare.getTo(), true);
+                noteACL.setWriteAccess(noteShare.getTo(), true);
+                // send notification
+                NotificationUtils.sendShareNotification(noteShare);
+            }
+            // Note and snippets share the same ACL
+            note.setACL(noteACL);
+            note.setDraft(true);
+        }
     }
 
     protected void setupSnippetsView(final Note note, final View v) {
@@ -1147,6 +1176,75 @@ public class NewNoteFragment extends Fragment {
                 } else {
                     snippetListAdapter.getItemView(s, snippetViews.get(i), null);
                 }
+            }
+        }
+    }
+
+    private static class UpdateNoteSharingTaskParams {
+        ArrayList<ParseUser> toRemoveUsers;
+        ArrayList<ParseUser> toShareUsers;
+    }
+
+    private class UpdateNoteSharingTask extends AsyncTask<UpdateNoteSharingTaskParams, Void, Boolean> {
+        UpdateNoteSharingTaskParams param;
+
+        protected Boolean doInBackground(UpdateNoteSharingTaskParams... params) {
+            this.param = params[0];
+            try {
+                stopSharing(params[0].toRemoveUsers);
+                shareNote(ParseUser.getCurrentUser(), params[0].toShareUsers);
+                // save snippets
+                ArrayList<NoteSnippet> dirtySnippets = getNoteActivity().getDirtySnippets();
+                if (dirtySnippets != null) {
+                    NoteUtils.saveSnippets(dirtySnippets);
+                    dirtySnippets.clear();
+                }
+                // save note
+                NoteUtils.saveNote(getNote());
+                return true;
+            } catch (ParseException e) {
+                return false;
+            }
+        }
+
+        /** The system calls this to perform work in the UI thread and delivers
+         * the result from doInBackground() */
+        protected void onPostExecute(Boolean result) {
+            if (result) {
+                snippetListAdapter.notifyDataSetChanged();
+                hideHeaderProgressBar();
+
+                if (!this.param.toShareUsers.isEmpty()) {
+                    ArrayList<String> userNames = new ArrayList<String>();
+                    for (ParseUser toUser : this.param.toShareUsers) {
+                        userNames.add(toUser.getUsername());
+                    }
+                    String message = null;
+                    if (userNames.size() > 1) {
+                        message = "Note is shared to users: " + TextUtils.join(", ", userNames) + ".";
+                    } else {
+                        message = "Note is shared to " + userNames.get(0) + ".";
+                    }
+                    Toast.makeText(getActivity(), message, Toast.LENGTH_LONG).show();
+                }
+
+                if (!this.param.toRemoveUsers.isEmpty()) {
+                    ArrayList<String> userNames = new ArrayList<String>();
+                    for (ParseUser toUser : this.param.toRemoveUsers) {
+                        userNames.add(toUser.getUsername());
+                    }
+                    String message = null;
+                    if (userNames.size() > 1) {
+                        message = TextUtils.join(", ", userNames) + " lose access to note.";
+                    } else {
+                        message = userNames.get(0) + " loses access to note.";
+                    }
+                    Toast.makeText(getActivity(), message, Toast.LENGTH_LONG).show();
+                }
+            } else {
+                Toast.makeText(getActivity(),
+                        "Error update note sharing, please try again.",
+                        Toast.LENGTH_LONG).show();
             }
         }
     }

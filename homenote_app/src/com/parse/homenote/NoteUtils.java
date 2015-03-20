@@ -3,11 +3,8 @@ package com.parse.homenote;
 import android.content.Context;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
-import android.widget.ImageView;
 
-import com.parse.GetCallback;
 import com.parse.ParseException;
-import com.parse.ParseQuery;
 import com.parse.ParseUser;
 
 import org.json.JSONObject;
@@ -119,7 +116,46 @@ public class NoteUtils {
             note.deleteEventually();
         }
         note.setDraft(false);
-        note.unpin();
+        note.unpin(HomeNoteApplication.NOTE_GROUP_NAME);
+    }
+
+    public static void saveNote(Note note) throws ParseException {
+        if (note == null) {
+            return;
+        }
+        if (note.isDraft()) {
+            note.setDraft(false);
+            try {
+                note.save();
+            } catch (ParseException e) {
+                note.setDraft(true);
+                throw e;
+            }
+        }
+        note.pin(HomeNoteApplication.NOTE_GROUP_NAME);
+    }
+
+    public static void saveSnippets(ArrayList<NoteSnippet> snippets) throws ParseException {
+        if (snippets == null) {
+            return;
+        }
+        ArrayList<NoteSnippet> draftSnippets = new ArrayList<>();
+        for (NoteSnippet snippet : snippets) {
+            if (snippet.isDraft()) {
+                draftSnippets.add(snippet);
+                snippet.setDraft(false);
+            }
+        }
+        try {
+            if (!draftSnippets.isEmpty()) {
+                NoteSnippet.saveAll(draftSnippets);
+            }
+        } catch (ParseException e) {
+            for (NoteSnippet snippet : draftSnippets)
+                snippet.setDraft(true);
+            throw e;
+        }
+        NoteSnippet.pinAll(snippets);
     }
 
     public static boolean isNull(Object obj) {

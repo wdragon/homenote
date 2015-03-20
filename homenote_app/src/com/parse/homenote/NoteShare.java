@@ -1,5 +1,6 @@
 package com.parse.homenote;
 
+import com.parse.ParseACL;
 import com.parse.ParseClassName;
 import com.parse.ParseObject;
 import com.parse.ParseQuery;
@@ -11,15 +12,32 @@ import com.parse.ParseUser;
 
 @ParseClassName("NoteShare")
 public class NoteShare extends ParseObject{
-    public NoteShare() {
+
+    final static String CREATED_TIME_KEY = "sharedCreatedAt";
+
+    public static NoteShare createNew(ParseUser from, ParseUser to, Note note) {
+        NoteShare noteShare = new NoteShare();
+        noteShare.setTimestamp(System.currentTimeMillis());
+        noteShare.setFrom(from);
+        noteShare.setTo(to);
+        noteShare.setConfirmed(false);
+        noteShare.setNote(note);
+        noteShare.setNoteUUID(note.getUUIDString());
+        ParseACL groupACL = new ParseACL();
+        groupACL.setReadAccess(from, true);
+        groupACL.setWriteAccess(from, true);
+        groupACL.setReadAccess(to, true);
+        groupACL.setWriteAccess(to, true);
+        noteShare.setACL(groupACL);
+        return noteShare;
     }
 
-    public int getTimestamp() {
-        return getInt("created");
+    public long getTimestamp() {
+        return getLong(CREATED_TIME_KEY);
     }
 
-    public void setTimestamp(int timestamp) {
-        put("created", timestamp);
+    public void setTimestamp(long timInMillis) {
+        put(CREATED_TIME_KEY, timInMillis);
     }
 
     public ParseUser getFrom() {
@@ -58,5 +76,17 @@ public class NoteShare extends ParseObject{
 
     public static ParseQuery<NoteShare> getQuery() {
         return ParseQuery.getQuery(NoteShare.class);
+    }
+
+    public static ParseQuery<NoteShare> getQueryForRender() {
+        ParseQuery<NoteShare> query = getQuery();
+        // keep in sync with Note.getQueryForRender();
+        query.include("note");
+        query.include("note.lastSnippet");
+        query.include("note.creator");
+        query.include("note.authors");
+        query.include("from");
+        query.include("to");
+        return query;
     }
 }

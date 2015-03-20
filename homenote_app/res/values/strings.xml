@@ -40,5 +40,5 @@
     <string name="imagepicker_loading">Loading images from Gallery...</string>
     <string name="action_imagepicker_add_photo">Add</string>
     <string name="action_imagepicker_add_photo_enabled">Add (%1$d)</string>
-
+    <string name="dialog_share_typeahead_hint">Ex: tom, 123-456-7890</string>
 </resources>

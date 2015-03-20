@@ -33,12 +33,30 @@ public class NewNoteActivity extends Activity {
             dirtySnippets.add(snippet);
     }
 
+    public ArrayList<NoteSnippet> getDirtySnippets() {
+        return dirtySnippets;
+    }
+
     private Fragment getFragment() {
         FragmentManager manager = getFragmentManager();
         return manager.findFragmentById(R.id.new_note_fragment);
     }
 
-    public void pinSnippets(List<NoteSnippet> snippets) {
+    public boolean pinSnippets(List<NoteSnippet> snippets) {
+        try {
+            NoteSnippet.pinAll(HomeNoteApplication.NOTE_GROUP_NAME, snippets);
+            return true;
+        } catch (ParseException e) {
+            if (!isFinishing())
+                Toast.makeText(getApplicationContext(),
+                        "Error saving: " + e.getMessage(),
+                        Toast.LENGTH_LONG).show();
+        } catch (Exception e) {
+        }
+        return false;
+    }
+
+    public void pinSnippetsInBackground(List<NoteSnippet> snippets) {
         NoteSnippet.pinAllInBackground(HomeNoteApplication.NOTE_GROUP_NAME, snippets,
                 new SaveCallback() {
                     @Override

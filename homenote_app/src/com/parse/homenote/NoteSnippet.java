@@ -53,6 +53,7 @@ public class NoteSnippet extends ParseObjectWithUUID {
         setNoteUUID(note.getUUIDString());
         setSnippetCreatedAt();
         updateContent(0, null, NoteSnippetContentType.TEXT.ordinal());
+        setACL(note.getACL());
         setDraft(true);
     }
 
@@ -342,6 +343,15 @@ public class NoteSnippet extends ParseObjectWithUUID {
 
     public static ParseQuery<NoteSnippet> getQuery() {
         return ParseQuery.getQuery(NoteSnippet.class);
+    }
+
+    public static ParseQuery<NoteSnippet> getQueryForRender() {
+        ParseQuery<NoteSnippet> query = getQuery();
+        query.include(REMINDER_KEY);
+        query.include("photos");
+        query.include(REMINDER_KEY + ".from");
+        query.include(REMINDER_KEY + ".to");
+        return query;
     }
 
     public void setPhotos(ArrayList<ParseFile> photos) {

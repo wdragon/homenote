@@ -10,22 +10,26 @@ import java.util.Calendar;
 public class NoteTaskRateTracker {
     private long lastRunTimeInMillis = 0L;
     private long rateLimitInMillis = DateUtils.HOUR_IN_MILLIS;
-    private Runnable runnable;
+    private NoteTask noteTask;
 
     void setRateLimitInMillis(long rateLimitInMillis) {
         if (rateLimitInMillis > 0L)
         this.rateLimitInMillis = rateLimitInMillis;
     }
 
-    void setTask(Runnable runnable) {
-        this.runnable = runnable;
+    void setTask(NoteTask noteTask) {
+        this.noteTask = noteTask;
     }
 
     void tryRun() {
         long millis = Calendar.getInstance().getTimeInMillis();
         if (millis - lastRunTimeInMillis > rateLimitInMillis) {
-            lastRunTimeInMillis = millis;
-            runnable.run();
+            if (noteTask.run())
+                lastRunTimeInMillis = millis;
         }
+    }
+
+    public interface NoteTask {
+        public boolean run();
     }
 }

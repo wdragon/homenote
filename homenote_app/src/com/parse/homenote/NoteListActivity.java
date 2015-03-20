@@ -31,7 +31,6 @@ import com.parse.FindCallback;
 import com.parse.GetDataCallback;
 import com.parse.ParseAnonymousUtils;
 import com.parse.ParseException;
-import com.parse.ParseImageView;
 import com.parse.ParseObject;
 import com.parse.ParseQuery;
 import com.parse.ParseQueryAdapter;
@@ -42,6 +41,8 @@ import com.parse.ui.ParseLoginBuilder;
 import static com.parse.homenote.NoteSnippetContentType.*;
 
 public class NoteListActivity extends Activity {
+
+    final static String TAG = "NoteListActivity";
 
 	private static final int LOGIN_ACTIVITY_CODE = 100;
 	private static final int EDIT_ACTIVITY_CODE = 200;
@@ -95,8 +96,8 @@ public class NoteListActivity extends Activity {
         // Set up the Parse query to use in the adapter
         ParseQueryAdapter.QueryFactory<Note> factory = new ParseQueryAdapter.QueryFactory<Note>() {
             public ParseQuery<Note> create() {
-                ParseQuery<Note> queryLocal = Note.getQueryIncludeLastSnippet();
-                queryLocal.whereEqualTo("authors", ParseUser.getCurrentUser());
+                ParseQuery<Note> queryLocal = Note.getQueryForRender();
+                //queryLocal.whereEqualTo("authors", ParseUser.getCurrentUser());
                 queryLocal.orderByDescending(Note.UPDATED_TIME);
                 queryLocal.fromLocalDatastore();
                 return queryLocal;
@@ -307,8 +308,7 @@ public class NoteListActivity extends Activity {
                                         if (e == null) {
                                             // Let adapter know to update view
                                             if (!isFinishing()) {
-                                                //noteListAdapter
-                                                //        .notifyDataSetChanged();
+                                                //noteListAdapter.loadObjects();
                                             }
                                         } else {
                                             // Reset the is draft flag locally
@@ -384,9 +384,8 @@ public class NoteListActivity extends Activity {
 	}
 
 	private void loadFromParse() {
-        // Authored notes
+        // TODO: move to async task
         // TODO: load the real last note
-        // TODO: flush the local cache
         syncFromParseCount = 0;
         syncFromParseTotal = 0;
 
@@ -394,14 +393,49 @@ public class NoteListActivity extends Activity {
         NetworkInfo ni = cm.getActiveNetworkInfo();
         if ((ni != null) && (ni.isConnected())) {
             syncFromParseTotal += 2;
-            ParseQuery<Note> query = Note.getQueryIncludeLastSnippet();
+
+            ParseQuery<Note> query = Note.getQueryForRender();
             query.whereEqualTo("authors", ParseUser.getCurrentUser());
+            // Include all local notes so that we could clean them up
+            List<Note> localNotes = null;
+            try {
+                ParseQuery<Note> localNoteQuery = Note.getQuery();
+                localNoteQuery.fromPin(HomeNoteApplication.NOTE_GROUP_NAME);
+                localNoteQuery.whereEqualTo("authors", ParseUser.getCurrentUser());
+                localNotes = localNoteQuery.find();
+                if (localNotes != null && localNotes.size() > 0) {
+                    ArrayList<String> localNoteIds = new ArrayList<>();
+                    for (Note note : localNotes)
+                        localNoteIds.add(note.getUUIDString());
+                    ParseQuery<Note> query1 = Note.getQuery();
+                    query1.whereContainedIn(ParseObjectWithUUID.UUID_KEY, localNoteIds);
+                    ParseQuery<Note> query2 = Note.getQuery();
+                    query2.whereEqualTo("authors", ParseUser.getCurrentUser());
+                    ArrayList<ParseQuery<Note>> queries = new ArrayList<ParseQuery<Note>>();
+                    queries.add(query1);
+                    queries.add(query2);
+                    query = ParseQuery.or(queries);
+                    query = Note.getQueryForRender(query);
+                }
+            } catch (ParseException e) {}
+            final List<Note> localNotesFinal = localNotes;
+
             query.findInBackground(new FindCallback<Note>() {
                 public void done(List<Note> notes, ParseException e) {
                     syncFromParseCount++;
                     checkAndStopAnimation();
                     if (e == null) {
                         syncFromParseTotal++;
+
+                        localNotesFinal.removeAll(notes);
+                        if (localNotesFinal.size() > 0) {
+                            try {
+                                Note.unpinAll(HomeNoteApplication.NOTE_GROUP_NAME, localNotesFinal);
+                            } catch (ParseException e1) {
+                                e1.printStackTrace();
+                            }
+                        }
+
                         ParseObject.pinAllInBackground(
                                 HomeNoteApplication.NOTE_GROUP_NAME,
                                 (List<Note>) notes,
@@ -431,7 +465,7 @@ public class NoteListActivity extends Activity {
             ParseQuery<NoteShare> innerQuery = NoteShare.getQuery();
             innerQuery.whereEqualTo("to", ParseUser.getCurrentUser());
             innerQuery.whereEqualTo("confirmed", true);
-            ParseQuery<Note> queryShared = Note.getQueryIncludeLastSnippet();
+            ParseQuery<Note> queryShared = Note.getQueryForRender();
             queryShared.orderByDescending(Note.UPDATED_TIME);
             queryShared.whereMatchesKeyInQuery("uuid", "noteUUID", innerQuery);
             queryShared.whereEqualTo("authors", ParseUser.getCurrentUser());
@@ -514,6 +548,11 @@ public class NoteListActivity extends Activity {
 			} else {
 				holder = (ViewHolder) view.getTag();
 			}
+
+            if (!note.isDataReadyForRender()) {
+                return view;
+            }
+
             NoteSnippet snippet = note.getLastSnippet();
             ArrayList<String> contents = snippet.getContents();
             ArrayList<Integer> contentTypes = snippet.getContentTypes();

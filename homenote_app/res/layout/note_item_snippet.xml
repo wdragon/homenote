@@ -25,7 +25,7 @@
                     android:id="@+id/snippet_meta_data"
                     android:layout_width="fill_parent"
                     android:layout_height="wrap_content"
-                    android:textColor="@color/timestamp"
+                    android:textColor="@color/note_meta_data"
                     android:textSize="@dimen/note_item_meta_data_font_size" />
 
             <LinearLayout

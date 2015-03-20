@@ -36,4 +36,14 @@ public class NotificationUtils {
         push.setData(data);
         push.sendInBackground();
     }
+
+    public static boolean sendShareNotification(NoteShare noteShare) {
+        String message = noteShare.getFrom().getUsername() + " shared a note.";
+        try {
+            NotificationUtils.notifyUserInvite(noteShare.getTo(), message, noteShare.getObjectId());
+            return true;
+        } catch (JSONException e1) {
+            return false;
+        }
+    }
 }

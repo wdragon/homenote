@@ -16,9 +16,9 @@
     <color name="note_item_border">#c2c3c8</color>
     <color name="note_item_border_transparent">#80c2c3c8</color>
     <color name="link">#0a80d1</color>
-    <color name="timestamp">#a0a3a7</color>
+    <color name="note_meta_data">#a0a3a7</color>
     <color name="highlight">#77c5e1</color>
     <color name="highlight_transparent">#8077c5e1</color>
     <color name="image_bg">#353535</color>
-
+    <color name="hint">#c2c3c8</color>
 </resources>

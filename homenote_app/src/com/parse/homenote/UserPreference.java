@@ -9,6 +9,7 @@ import com.parse.ParseUser;
 import com.parse.SaveCallback;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 
 /**
  * Created by Yuntao Jia on 3/2/2015.
@@ -18,6 +19,8 @@ public class UserPreference extends ParseObject {
 
     final static String BLOCKED_USERS_KEY = "blockedUsers";
     final static String LAST_OPENED_NOTE_KEY = "lastOpenedNote";
+    final static String CLOSE_USERS_KEY = "closeUsers";
+    final static int CLOSE_USERS_MAX_COUNT = 10;
 
     public ParseUser getCreator() { return getParseUser("creator"); }
 
@@ -38,12 +41,32 @@ public class UserPreference extends ParseObject {
         return false;
     }
 
+    public boolean addCloseUser(ParseUser user) {
+        LinkedList<ParseUser> closeUsers = (LinkedList<ParseUser>) get(CLOSE_USERS_KEY);
+        if (NoteUtils.isNull(closeUsers)) {
+            closeUsers = new LinkedList<>();
+        }
+        if (closeUsers.size() > 0 && closeUsers.getFirst() != user) {
+            closeUsers.remove(user);
+            closeUsers.addFirst(user);
+            if (closeUsers.size() > CLOSE_USERS_MAX_COUNT)
+                closeUsers.removeLast();
+            setDraft(true);
+            return true;
+        }
+        return false;
+    }
+
+    public LinkedList<ParseUser> getCloseUsers() {
+        return (LinkedList<ParseUser>) get(CLOSE_USERS_KEY);
+    }
+
     public void addBlockUser(ParseUser user) {
         ArrayList<ParseUser> blockedUsers = (ArrayList<ParseUser>) get(BLOCKED_USERS_KEY);
         if (NoteUtils.isNull(blockedUsers)) {
             blockedUsers = new ArrayList<>();
         }
-        if (blockedUsers.contains(user)) {
+        if (!blockedUsers.contains(user)) {
             blockedUsers.add(user);
             put(BLOCKED_USERS_KEY, blockedUsers);
             setDraft(true);

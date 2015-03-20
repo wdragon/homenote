@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.parse.homenote.UserAutoCompleteView
+        android:id="@+id/share_typeahead"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:layout_marginLeft="@dimen/note_item_margin"
+        android:layout_marginRight="@dimen/note_item_margin"
+        android:ems="4"
+        android:singleLine="false"
+        android:hint="@string/dialog_share_typeahead_hint"
+        android:textColorHint="@color/hint"
+        android:textSize="@dimen/note_item_text_font_size"
+        android:textColorHighlight="@color/highlight"
+        android:inputType="textNoSuggestions" />
+
+</LinearLayout>
