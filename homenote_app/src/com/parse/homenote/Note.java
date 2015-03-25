@@ -116,7 +116,7 @@ public class Note extends ParseObjectWithUUID {
             cursorPosition.put("contentIndex", snippetContentIndex);
             cursorPosition.put("contentTextOffset", snippetContentTextOffset);
             put("cursorPosition", cursorPosition);
-            setNoteUpdatedAt();
+            setDraft(true);
         }
     }
 
