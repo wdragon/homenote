@@ -335,10 +335,11 @@ public class NewNoteFragment extends Fragment {
         int index = snippet.size();
         NoteSnippet.ContentEntry ce = snippet.getPreviousValidContentEntry(index);
         if (ce != null && ce.type == NoteSnippetContentType.TEXT.ordinal() && snippet.getContents().get(ce.index).length() == 0) {
+            // The previous content is empty, update it to checkbox instead of adding a new one
             index = ce.index;
         }
-        note.setCursorPosition(snippet, snippet.size(), 0);
-        snippet.updateContent(snippet.size(), "", NoteSnippetContentType.CHECK_BOX_OFF.ordinal());
+        note.setCursorPosition(snippet, index, 0);
+        snippet.updateContent(index, "", NoteSnippetContentType.CHECK_BOX_OFF.ordinal());
         dirtySnippet(snippet);
         snippetListAdapter.notifyDataSetChanged();
     }
@@ -803,6 +804,15 @@ public class NewNoteFragment extends Fragment {
                         dirtySnippet(holder.snippet);
                         snippetListAdapter.notifyDataSetChanged();
                     }
+                } else {
+                    ce = holder.snippet.getNextValidContentEntry(subView.index);
+                    if (ce == null) {
+                        if (snippetListAdapter.getCount() > 1) {
+                            //TODO: delete the current snippet and refresh
+                        }
+                    } else {
+                        // do nothing because the snippet is not empty
+                    }
                 }
             }
         }
@@ -1175,6 +1185,7 @@ public class NewNoteFragment extends Fragment {
 
         /**
          * Assuming no deletion of snippets which is true currently
+         * //clear all views and add them back again
          */
         public void syncWithSnippetData() {
             for (int i=0; i<snippetListAdapter.getCount(); i++) {
