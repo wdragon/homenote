@@ -52,9 +52,9 @@ public class NoteSnippet extends ParseObjectWithUUID {
         setUUIDString();
         setNoteUUID(note.getUUIDString());
         setSnippetCreatedAt();
+        setSnippetUpdatedAt();
         updateContent(0, null, NoteSnippetContentType.TEXT.ordinal());
         setACL(note.getACL());
-        setDraft(true);
     }
 
     protected void setNoteUUID(String noteUuid) { put("noteUuid", noteUuid); }
@@ -69,15 +69,22 @@ public class NoteSnippet extends ParseObjectWithUUID {
         return (Date)get(CREATED_TIME);
     }
 
+    public void setSnippetUpdatedAt() {
+        setSnippetUpdatedAt(Calendar.getInstance().getTime());
+    }
+
     public void setSnippetUpdatedAt(Date date) {
         put(UPDATED_TIME, date);
+        setDraft(true);
     }
 
     public Date getSnippetUpdatedAt() {
         return (Date)get(UPDATED_TIME);
     }
 
-    public ArrayList<NoteReminder> getReminders() { return (ArrayList<NoteReminder>)get(REMINDER_KEY); }
+    public ArrayList<NoteReminder> getReminders() {
+        return (ArrayList<NoteReminder>)get(REMINDER_KEY);
+    }
 
     public void addReminder(NoteReminder reminder) {
         if (reminder != null) {
@@ -87,7 +94,7 @@ public class NoteSnippet extends ParseObjectWithUUID {
             if (!reminders.contains(reminder)) {
                 reminders.add(reminder);
                 put(REMINDER_KEY, reminders);
-                setDraft(true);
+                setSnippetUpdatedAt();
             }
         }
     }
@@ -100,7 +107,7 @@ public class NoteSnippet extends ParseObjectWithUUID {
             if (reminders.contains(reminder)) {
                 reminders.remove(reminder);
                 put(REMINDER_KEY, reminders);
-                setDraft(true);
+                setSnippetUpdatedAt();
             }
         }
     }
@@ -143,7 +150,9 @@ public class NoteSnippet extends ParseObjectWithUUID {
         return null;
     }
 
-    public ArrayList<Long> getContentUpdatedTimes() { return (ArrayList<Long>)get(CONTENT_UPDATE_TIME_KEY); }
+    public ArrayList<Long> getContentUpdatedTimes() {
+        return (ArrayList<Long>)get(CONTENT_UPDATE_TIME_KEY);
+    }
 
     public NoteSnippetContentOp getContentOp(int index) {
         if (lastRoundOps == null || lastRoundOps.size() <= index)
@@ -206,8 +215,9 @@ public class NoteSnippet extends ParseObjectWithUUID {
         ArrayList<Integer> contentTypes = getContentTypes();
         contentTypes.set(idx, contentType);
         put(CONTENT_TYPE_KEY, contentTypes);
-        updateContentUpdatedTime(idx);
         setContentOp(idx, NoteSnippetContentOp.UPDATE);
+        updateContentUpdatedTime(idx);
+        setSnippetUpdatedAt();
     }
 
     public void updateExistingContent(int idx, String content) {
@@ -215,14 +225,14 @@ public class NoteSnippet extends ParseObjectWithUUID {
         contents.set(idx, content);
         put(CONTENT_KEY, contents);
         updateContentUpdatedTime(idx);
+        setSnippetUpdatedAt();
     }
 
-    public void insertContent(int idx, String content, int contentType) {
+    public boolean insertContent(int idx, String content, int contentType) {
         if (content == null)
             content = "";
         if (size() <= idx) {
-            updateContent(idx, content, contentType);
-            return;
+            return updateContent(idx, content, contentType);
         }
         ArrayList<String> contents = getContents();
         ArrayList<Integer> contentTypes = getContentTypes();
@@ -237,6 +247,8 @@ public class NoteSnippet extends ParseObjectWithUUID {
         put(CONTENT_KEY, contents);
         put(CONTENT_TYPE_KEY, contentTypes);
         put(CONTENT_UPDATE_TIME_KEY, contentTs);
+        setSnippetUpdatedAt();
+        return true;
     }
 
     /**
@@ -273,14 +285,14 @@ public class NoteSnippet extends ParseObjectWithUUID {
             put(CONTENT_TYPE_KEY, contentTypes);
             updateContentUpdatedTime(idx);
             setContentOp(idx, op);
-            setDraft(true);
+            setSnippetUpdatedAt();
         }
         return updated;
     }
 
-    public void deleteContent(int idx) {
+    public boolean deleteContent(int idx) {
         if (size() <= idx) {
-            return;
+            return false;
         }
 
         ArrayList<String> contents = getContents();
@@ -296,6 +308,8 @@ public class NoteSnippet extends ParseObjectWithUUID {
         put(CONTENT_KEY, contents);
         put(CONTENT_TYPE_KEY, contentTypes);
         put(CONTENT_UPDATE_TIME_KEY, contentTs);
+        setSnippetUpdatedAt();
+        return true;
     }
 
     private void updateContentUpdatedTime(int idx) {
@@ -337,7 +351,6 @@ public class NoteSnippet extends ParseObjectWithUUID {
     }
 
     public void setDraft(boolean isDraft) {
-        setSnippetUpdatedAt(Calendar.getInstance().getTime());
         put("isDraft", isDraft);
     }
 
@@ -362,7 +375,7 @@ public class NoteSnippet extends ParseObjectWithUUID {
         }
         if (!photos.contains(photo)) {
             photos.add(photo);
-            setDraft(true);
+            setSnippetUpdatedAt();
             return true;
         }
         return false;
@@ -372,11 +385,13 @@ public class NoteSnippet extends ParseObjectWithUUID {
         ArrayList<ParseFile> photos = getPhotos();
         if (!NoteUtils.isNull(photos) && photos.contains(photo)) {
             photos.remove(photo);
-            setDraft(true);
+            setSnippetUpdatedAt();
             return true;
         }
         return false;
     }
 
-    public ArrayList<ParseFile> getPhotos() { return (ArrayList<ParseFile>)get("photos"); }
+    public ArrayList<ParseFile> getPhotos() {
+        return (ArrayList<ParseFile>)get("photos");
+    }
 }

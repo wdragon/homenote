@@ -103,6 +103,8 @@ public class UserPreference extends ParseObject {
         }
     }
 
-    public static ParseQuery<UserPreference> getQuery() { return ParseQuery.getQuery(UserPreference.class); }
+    public static ParseQuery<UserPreference> getQuery() {
+        return ParseQuery.getQuery(UserPreference.class);
+    }
 }
 

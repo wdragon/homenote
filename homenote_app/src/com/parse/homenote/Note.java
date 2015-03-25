@@ -35,10 +35,10 @@ public class Note extends ParseObjectWithUUID {
     protected void init() {
         setUUIDString();
         setNoteCreatedAt();
+        setNoteUpdatedAt();
         setCreator(ParseUser.getCurrentUser());
         addAuthor(ParseUser.getCurrentUser());
         setACL(new ParseACL(ParseUser.getCurrentUser()));
-        setDraft(true);
     }
 
 	public ParseUser getCreator() {
@@ -57,7 +57,7 @@ public class Note extends ParseObjectWithUUID {
         }
         if (!authors.contains(author)) {
             authors.add(author);
-            setDraft(true);
+            setNoteUpdatedAt();
             return true;
         }
         return false;
@@ -70,7 +70,7 @@ public class Note extends ParseObjectWithUUID {
         }
         if (authors.contains(author)) {
             authors.remove(author);
-            setDraft(true);
+            setNoteUpdatedAt();
             return true;
         }
         return false;
@@ -112,10 +112,11 @@ public class Note extends ParseObjectWithUUID {
                 getCursorSnippetContentIndex() != snippetContentIndex ||
                 getCursorSnippetContentTextOffset() != snippetContentTextOffset) {
             cursorPosition.put("snippet", snippet);
+            put("lastSnippet", snippet);
             cursorPosition.put("contentIndex", snippetContentIndex);
             cursorPosition.put("contentTextOffset", snippetContentTextOffset);
             put("cursorPosition", cursorPosition);
-            setDraft(true);
+            setNoteUpdatedAt();
         }
     }
 
@@ -127,8 +128,13 @@ public class Note extends ParseObjectWithUUID {
         return (Date)get(CREATED_TIME);
     }
 
+    public void setNoteUpdatedAt() {
+        setNoteUpdatedAt(Calendar.getInstance().getTime());
+    }
+
     public void setNoteUpdatedAt(Date date) {
         put(UPDATED_TIME, date);
+        setDraft(true);
     }
 
     public Date getNoteUpdatedAt() {
@@ -140,7 +146,6 @@ public class Note extends ParseObjectWithUUID {
     }
 
     public void setDraft(boolean isDraft) {
-        setNoteUpdatedAt(Calendar.getInstance().getTime());
         put("isDraft", isDraft);
     }
 
@@ -149,7 +154,7 @@ public class Note extends ParseObjectWithUUID {
     public NoteSnippet createNewLastSnippet() {
         NoteSnippet last = NoteSnippet.createNew(this);
         put("lastSnippet", last);
-        setDraft(true);
+        setNoteUpdatedAt();
         return last;
     }
 

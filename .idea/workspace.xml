@@ -55,8 +55,8 @@
           <file leaf-file-name="NewNoteFragment.java" pinned="false" current="false" current-in-tab="false">
             <entry file="file://$PROJECT_DIR$/homenote_app/src/com/parse/homenote/NewNoteFragment.java">
               <provider selected="true" editor-type-id="text-editor">
-                <state vertical-scroll-proportion="-3.909091" vertical-offset="20713" max-vertical-offset="21216">
-                  <caret line="1291" column="0" selection-start-line="1291" selection-start-column="0" selection-end-line="1291" selection-end-column="0" />
+                <state vertical-scroll-proportion="-8.848485" vertical-offset="9687" max-vertical-offset="21216">
+                  <caret line="633" column="33" selection-start-line="633" selection-start-column="33" selection-end-line="633" selection-end-column="33" />
                   <folding>
                     <element signature="imports" expanded="true" />
                     <element signature="e#43369#43958#0" expanded="true" />
@@ -76,23 +76,6 @@
                 <state vertical-scroll-proportion="0.0" vertical-offset="3005" max-vertical-offset="5151">
                   <caret line="237" column="0" selection-start-line="237" selection-start-column="0" selection-end-line="237" selection-end-column="0" />
                   <folding />
-                </state>
-              </provider>
-            </entry>
-          </file>
-          <file leaf-file-name="NoteSnippet.java" pinned="false" current="false" current-in-tab="false">
-            <entry file="file://$PROJECT_DIR$/homenote_app/src/com/parse/homenote/NoteSnippet.java">
-              <provider selected="true" editor-type-id="text-editor">
-                <state vertical-scroll-proportion="-5.4545455" vertical-offset="5974" max-vertical-offset="6392">
-                  <caret line="374" column="27" selection-start-line="374" selection-start-column="27" selection-end-line="374" selection-end-column="27" />
-                  <folding>
-                    <element signature="e#2013#2014#0" expanded="true" />
-                    <element signature="e#2059#2060#0" expanded="true" />
-                    <element signature="e#3076#3077#0" expanded="true" />
-                    <element signature="e#3134#3135#0" expanded="true" />
-                    <element signature="e#10801#10802#0" expanded="true" />
-                    <element signature="e#10845#10846#0" expanded="true" />
-                  </folding>
                 </state>
               </provider>
             </entry>
@@ -120,25 +103,19 @@
               </provider>
             </entry>
           </file>
-          <file leaf-file-name="photo_menu.xml" pinned="false" current="false" current-in-tab="false">
-            <entry file="file://$PROJECT_DIR$/homenote_app/res/menu/photo_menu.xml">
-              <provider selected="true" editor-type-id="text-editor">
-                <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="374">
-                  <caret line="8" column="0" selection-start-line="8" selection-start-column="0" selection-end-line="8" selection-end-column="0" />
-                  <folding>
-                    <element signature="e#275#300#0" expanded="true" />
-                    <element signature="e#483#507#0" expanded="true" />
-                  </folding>
-                </state>
-              </provider>
-            </entry>
-          </file>
-          <file leaf-file-name="Note.java" pinned="false" current="true" current-in-tab="true">
+          <file leaf-file-name="Note.java" pinned="false" current="false" current-in-tab="false">
             <entry file="file://$PROJECT_DIR$/homenote_app/src/com/parse/homenote/Note.java">
               <provider selected="true" editor-type-id="text-editor">
-                <state vertical-scroll-proportion="0.42639595" vertical-offset="2" max-vertical-offset="2890">
-                  <caret line="15" column="19" selection-start-line="15" selection-start-column="19" selection-end-line="15" selection-end-column="19" />
-                  <folding />
+                <state vertical-scroll-proportion="-4.7272725" vertical-offset="1969" max-vertical-offset="3043">
+                  <caret line="136" column="23" selection-start-line="136" selection-start-column="23" selection-end-line="136" selection-end-column="23" />
+                  <folding>
+                    <element signature="e#3652#3653#0" expanded="true" />
+                    <element signature="e#3719#3720#0" expanded="true" />
+                    <element signature="e#3841#3842#0" expanded="true" />
+                    <element signature="e#3907#3908#0" expanded="true" />
+                    <element signature="e#4222#4223#0" expanded="true" />
+                    <element signature="e#4261#4262#0" expanded="true" />
+                  </folding>
                 </state>
               </provider>
             </entry>
@@ -146,10 +123,23 @@
           <file leaf-file-name="NoteUtils.java" pinned="false" current="false" current-in-tab="false">
             <entry file="file://$PROJECT_DIR$/homenote_app/src/com/parse/homenote/NoteUtils.java">
               <provider selected="true" editor-type-id="text-editor">
-                <state vertical-scroll-proportion="0.0" vertical-offset="1883" max-vertical-offset="2924">
-                  <caret line="110" column="17" selection-start-line="110" selection-start-column="17" selection-end-line="110" selection-end-column="17" />
+                <state vertical-scroll-proportion="0.0" vertical-offset="2485" max-vertical-offset="2924">
+                  <caret line="154" column="24" selection-start-line="154" selection-start-column="24" selection-end-line="154" selection-end-column="24" />
                   <folding>
                     <element signature="imports" expanded="true" />
+                  </folding>
+                </state>
+              </provider>
+            </entry>
+          </file>
+          <file leaf-file-name="UserPreference.java" pinned="false" current="true" current-in-tab="true">
+            <entry file="file://$PROJECT_DIR$/homenote_app/src/com/parse/homenote/UserPreference.java">
+              <provider selected="true" editor-type-id="text-editor">
+                <state vertical-scroll-proportion="-2.0454545" vertical-offset="1020" max-vertical-offset="1734">
+                  <caret line="24" column="36" selection-start-line="24" selection-start-column="36" selection-end-line="24" selection-end-column="36" />
+                  <folding>
+                    <element signature="e#2751#2752#0" expanded="true" />
+                    <element signature="e#2790#2791#0" expanded="true" />
                   </folding>
                 </state>
               </provider>
@@ -158,11 +148,24 @@
           <file leaf-file-name="NoteListActivity.java" pinned="false" current="false" current-in-tab="false">
             <entry file="file://$PROJECT_DIR$/homenote_app/src/com/parse/homenote/NoteListActivity.java">
               <provider selected="true" editor-type-id="text-editor">
-                <state vertical-scroll-proportion="-5.4545455" vertical-offset="9901" max-vertical-offset="11135">
-                  <caret line="620" column="77" selection-start-line="620" selection-start-column="77" selection-end-line="620" selection-end-column="77" />
+                <state vertical-scroll-proportion="0.93939394" vertical-offset="5641" max-vertical-offset="11135">
+                  <caret line="344" column="40" selection-start-line="344" selection-start-column="40" selection-end-line="344" selection-end-column="40" />
                   <folding>
                     <element signature="imports" expanded="true" />
                     <element signature="e#16370#16388#0" expanded="true" />
+                  </folding>
+                </state>
+              </provider>
+            </entry>
+          </file>
+          <file leaf-file-name="NoteSnippet.java" pinned="false" current="false" current-in-tab="false">
+            <entry file="file://$PROJECT_DIR$/homenote_app/src/com/parse/homenote/NoteSnippet.java">
+              <provider selected="true" editor-type-id="text-editor">
+                <state vertical-scroll-proportion="0.0" vertical-offset="5545" max-vertical-offset="6511">
+                  <caret line="352" column="41" selection-start-line="352" selection-start-column="41" selection-end-line="352" selection-end-column="41" />
+                  <folding>
+                    <element signature="e#11241#11242#0" expanded="true" />
+                    <element signature="e#11280#11281#0" expanded="true" />
                   </folding>
                 </state>
               </provider>
@@ -2072,7 +2075,6 @@
         <option value="$PROJECT_DIR$/homenote_app/res/menu/menu_imagepicker.xml" />
         <option value="$PROJECT_DIR$/homenote_app/res/values/colors.xml" />
         <option value="$PROJECT_DIR$/homenote_app/src/com/parse/homenote/UserPreferenceManager.java" />
-        <option value="$PROJECT_DIR$/homenote_app/src/com/parse/homenote/UserPreference.java" />
         <option value="$PROJECT_DIR$/homenote_app/src/com/parse/homenote/NotificationUtils.java" />
         <option value="$PROJECT_DIR$/homenote_app/src/com/parse/homenote/NoteTaskRateTracker.java" />
         <option value="$PROJECT_DIR$/homenote_app/src/com/parse/homenote/NoteShare.java" />
@@ -2087,14 +2089,15 @@
         <option value="$PROJECT_DIR$/homenote_app/src/com/parse/homenote/NewNoteActivity.java" />
         <option value="$PROJECT_DIR$/homenote_app/src/com/parse/homenote/ParseObjectWithUUID.java" />
         <option value="$PROJECT_DIR$/homenote_app/src/com/parse/homenote/NoteUtils.java" />
-        <option value="$PROJECT_DIR$/homenote_app/src/com/parse/homenote/Note.java" />
         <option value="$PROJECT_DIR$/homenote_app/res/values/strings.xml" />
         <option value="$PROJECT_DIR$/homenote_app/res/menu/photo_menu.xml" />
         <option value="$PROJECT_DIR$/homenote_app/src/com/parse/homenote/ImagePickerFragment.java" />
         <option value="$PROJECT_DIR$/homenote_app/src/com/parse/homenote/NoteImageView.java" />
         <option value="$PROJECT_DIR$/homenote_app/src/com/parse/homenote/NewNoteFragment.java" />
-        <option value="$PROJECT_DIR$/homenote_app/src/com/parse/homenote/NoteSnippet.java" />
         <option value="$PROJECT_DIR$/homenote_app/src/com/parse/homenote/NoteListActivity.java" />
+        <option value="$PROJECT_DIR$/homenote_app/src/com/parse/homenote/Note.java" />
+        <option value="$PROJECT_DIR$/homenote_app/src/com/parse/homenote/NoteSnippet.java" />
+        <option value="$PROJECT_DIR$/homenote_app/src/com/parse/homenote/UserPreference.java" />
       </list>
     </option>
   </component>
@@ -2868,7 +2871,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/homenote_app/src/com/parse/homenote/NoteSnippet.java</url>
-          <line>371</line>
+          <line>384</line>
           <properties />
           <option name="timeStamp" value="316" />
         </line-breakpoint>
@@ -2880,7 +2883,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/homenote_app/src/com/parse/homenote/NoteSnippet.java</url>
-          <line>357</line>
+          <line>370</line>
           <properties />
           <option name="timeStamp" value="319" />
         </line-breakpoint>
@@ -2889,13 +2892,6 @@
     </breakpoint-manager>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/homenote_app/build.gradle">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="612">
-          <caret line="24" column="0" selection-start-line="24" selection-start-column="0" selection-end-line="24" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/build.gradle">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="493">
@@ -3279,6 +3275,29 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/homenote_app/src/com/parse/homenote/NewNoteActivity.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="1441" max-vertical-offset="2839">
+          <caret line="111" column="0" selection-start-line="111" selection-start-column="0" selection-end-line="111" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/homenote_app/src/com/parse/homenote/Note.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-4.7272725" vertical-offset="1969" max-vertical-offset="3043">
+          <caret line="136" column="23" selection-start-line="136" selection-start-column="23" selection-end-line="136" selection-end-column="23" />
+          <folding>
+            <element signature="e#3652#3653#0" expanded="true" />
+            <element signature="e#3719#3720#0" expanded="true" />
+            <element signature="e#3841#3842#0" expanded="true" />
+            <element signature="e#3907#3908#0" expanded="true" />
+            <element signature="e#4222#4223#0" expanded="true" />
+            <element signature="e#4261#4262#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/homenote_app/src/com/parse/homenote/ImagePickerFragment.java">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0" vertical-offset="3005" max-vertical-offset="5151">
@@ -3289,8 +3308,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/homenote_app/src/com/parse/homenote/NewNoteFragment.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="-3.909091" vertical-offset="20713" max-vertical-offset="21216">
-          <caret line="1291" column="0" selection-start-line="1291" selection-start-column="0" selection-end-line="1291" selection-end-column="0" />
+        <state vertical-scroll-proportion="-8.848485" vertical-offset="9687" max-vertical-offset="21216">
+          <caret line="633" column="33" selection-start-line="633" selection-start-column="33" selection-end-line="633" selection-end-column="33" />
           <folding>
             <element signature="imports" expanded="true" />
             <element signature="e#43369#43958#0" expanded="true" />
@@ -3303,25 +3322,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/homenote_app/src/com/parse/homenote/NoteSnippet.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="-5.4545455" vertical-offset="5974" max-vertical-offset="6392">
-          <caret line="374" column="27" selection-start-line="374" selection-start-column="27" selection-end-line="374" selection-end-column="27" />
-          <folding>
-            <element signature="e#2013#2014#0" expanded="true" />
-            <element signature="e#2059#2060#0" expanded="true" />
-            <element signature="e#3076#3077#0" expanded="true" />
-            <element signature="e#3134#3135#0" expanded="true" />
-            <element signature="e#10801#10802#0" expanded="true" />
-            <element signature="e#10845#10846#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/homenote_app/src/com/parse/homenote/NoteListActivity.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="-5.4545455" vertical-offset="9901" max-vertical-offset="11135">
-          <caret line="620" column="77" selection-start-line="620" selection-start-column="77" selection-end-line="620" selection-end-column="77" />
+        <state vertical-scroll-proportion="0.93939394" vertical-offset="5641" max-vertical-offset="11135">
+          <caret line="344" column="40" selection-start-line="344" selection-start-column="40" selection-end-line="344" selection-end-column="40" />
           <folding>
             <element signature="imports" expanded="true" />
             <element signature="e#16370#16388#0" expanded="true" />
@@ -3329,29 +3333,35 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/homenote_app/src/com/parse/homenote/NewNoteActivity.java">
+    <entry file="file://$PROJECT_DIR$/homenote_app/src/com/parse/homenote/NoteSnippet.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0" vertical-offset="1441" max-vertical-offset="2839">
-          <caret line="111" column="0" selection-start-line="111" selection-start-column="0" selection-end-line="111" selection-end-column="0" />
-          <folding />
+        <state vertical-scroll-proportion="0.0" vertical-offset="5545" max-vertical-offset="6511">
+          <caret line="352" column="41" selection-start-line="352" selection-start-column="41" selection-end-line="352" selection-end-column="41" />
+          <folding>
+            <element signature="e#11241#11242#0" expanded="true" />
+            <element signature="e#11280#11281#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/homenote_app/src/com/parse/homenote/NoteUtils.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0" vertical-offset="1883" max-vertical-offset="2924">
-          <caret line="110" column="17" selection-start-line="110" selection-start-column="17" selection-end-line="110" selection-end-column="17" />
+        <state vertical-scroll-proportion="0.0" vertical-offset="2485" max-vertical-offset="2924">
+          <caret line="154" column="24" selection-start-line="154" selection-start-column="24" selection-end-line="154" selection-end-column="24" />
           <folding>
             <element signature="imports" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/homenote_app/src/com/parse/homenote/Note.java">
+    <entry file="file://$PROJECT_DIR$/homenote_app/src/com/parse/homenote/UserPreference.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.42639595" vertical-offset="2" max-vertical-offset="2890">
-          <caret line="15" column="19" selection-start-line="15" selection-start-column="19" selection-end-line="15" selection-end-column="19" />
-          <folding />
+        <state vertical-scroll-proportion="-2.0454545" vertical-offset="1020" max-vertical-offset="1734">
+          <caret line="24" column="36" selection-start-line="24" selection-start-column="36" selection-end-line="24" selection-end-column="36" />
+          <folding>
+            <element signature="e#2751#2752#0" expanded="true" />
+            <element signature="e#2790#2791#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
