@@ -233,9 +233,7 @@ public class ImagePickerFragment extends Fragment
     private void addPhotoToNoteAndReturn(ParseFile photoFile) {
         NewNoteActivity activity = ((NewNoteActivity) getActivity());
         NoteSnippet snippet = activity.getNote().createNewLastSnippet();
-        ArrayList<ParseFile> photos = new ArrayList<ParseFile>();
-        photos.add(photoFile);
-        snippet.setPhotos(photos);
+        snippet.addPhoto(photoFile);
 
         if (activity.getNote().getCursorSnippet() != snippet)
             activity.getNote().setCursorPosition(snippet, 0, -1);

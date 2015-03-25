@@ -618,7 +618,7 @@ public class NoteListActivity extends Activity {
                 }
             }
 
-            if (snippet.getPhotos() != null) {
+            if (snippet.getPhotos() != null && !snippet.getPhotos().isEmpty()) {
                 holder.photo.setVisibility(View.VISIBLE);
                 NoteViewUtils.setAndLoadImageFile(holder.photo, snippet.getPhotos().get(0), new GetDataCallback() {
                     @Override

@@ -42,4 +42,8 @@ public class NoteImageView extends ParseImageView {
         this.file = null;
         super.onDetachedFromWindow();
     }
+
+    public ParseFile getFile() {
+        return file;
+    }
 }

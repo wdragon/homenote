@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
+import android.view.ActionMode;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -1031,6 +1032,21 @@ public class NewNoteFragment extends Fragment {
                 holder.subViewContainer = (LinearLayout) view.findViewById(R.id.snippet_linear_layout);
                 holder.reminderContainer = (LinearLayout) view.findViewById(R.id.snippet_reminder_linear_layout);
                 view.setTag(holder);
+
+                holder.photo.setOnLongClickListener(new View.OnLongClickListener() {
+                    @Override
+                    public boolean onLongClick(View v) {
+                        if (actionMode != null) {
+                            return false;
+                        }
+
+                        // Start the CAB using the ActionMode.Callback defined above
+                        actionMode = getActivity().startActionMode(modeCallBack);
+                        actionMode.setTag(holder);
+                        holder.photo.setSelected(true);
+                        return true;
+                    }
+                });
             } else {
                 holder = (ViewHolder) view.getTag();
             }
@@ -1101,7 +1117,7 @@ public class NewNoteFragment extends Fragment {
                 }
             }
 
-            if (snippet.getPhotos() != null) {
+            if (snippet.getPhotos() != null && !snippet.getPhotos().isEmpty()) {
                 NoteViewUtils.setAndLoadImageFile(holder.photo, snippet.getPhotos().get(0), new GetDataCallback() {
                     @Override
                     public void done(byte[] bytes, ParseException e) {
@@ -1248,4 +1264,45 @@ public class NewNoteFragment extends Fragment {
             }
         }
     }
+
+    ActionMode actionMode;
+    private ActionMode.Callback modeCallBack = new ActionMode.Callback() {
+
+        public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+            return false;
+        }
+
+        public void onDestroyActionMode(ActionMode mode) {
+            mode = null;
+            actionMode = null;
+        }
+
+        public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+            MenuInflater inflater = mode.getMenuInflater();
+            inflater.inflate(R.menu.photo_menu, menu);
+            return true;
+        }
+
+        public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+            switch (item.getItemId()) {
+                case R.id.photo_action_download:
+                    //TODO: download photos to local gallery
+                    return true;
+                case R.id.photo_action_discard:
+                    ViewHolder holder = (ViewHolder) mode.getTag();
+                    if (holder != null) {
+                        NoteSnippet snippet = holder.snippet;
+                        if (snippet.removePhoto(holder.photo.getFile())) {
+                            getNoteActivity().addDirtySnippet(snippet);
+                            getNoteActivity().saveNote(false);
+                            snippetListAdapter.notifyDataSetChanged();
+                            mode.finish();
+                        }
+                    }
+                    return true;
+                default:
+                    return false;
+            }
+        }
+    };
 }

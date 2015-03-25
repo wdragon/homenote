@@ -354,9 +354,28 @@ public class NoteSnippet extends ParseObjectWithUUID {
         return query;
     }
 
-    public void setPhotos(ArrayList<ParseFile> photos) {
-        put("photos", photos);
-        setDraft(true);
+    public boolean addPhoto(ParseFile photo) {
+        ArrayList<ParseFile> photos = getPhotos();
+        if (NoteUtils.isNull(photos)) {
+            photos = new ArrayList<>();
+            put("photos", photos);
+        }
+        if (!photos.contains(photo)) {
+            photos.add(photo);
+            setDraft(true);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean removePhoto(ParseFile photo) {
+        ArrayList<ParseFile> photos = getPhotos();
+        if (!NoteUtils.isNull(photos) && photos.contains(photo)) {
+            photos.remove(photo);
+            setDraft(true);
+            return true;
+        }
+        return false;
     }
 
     public ArrayList<ParseFile> getPhotos() { return (ArrayList<ParseFile>)get("photos"); }
