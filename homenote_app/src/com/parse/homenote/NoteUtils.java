@@ -119,43 +119,60 @@ public class NoteUtils {
         note.unpin(HomeNoteApplication.NOTE_GROUP_NAME);
     }
 
-    public static void saveNote(Note note) throws ParseException {
+    public static void deleteSnippets(ArrayList<NoteSnippet> snippets) throws ParseException {
+        if (snippets == null) {
+            return;
+        }
+        for (NoteSnippet snippet : snippets) {
+            if (snippet.getObjectId() != null) {
+                snippet.deleteEventually();
+            }
+            snippet.setDraft(false);
+        }
+        NoteSnippet.unpinAll(HomeNoteApplication.NOTE_GROUP_NAME, snippets);
+    }
+
+    public static void saveNote(Note note, boolean toServer) throws ParseException {
         if (note == null) {
             return;
         }
-        if (note.isDraft()) {
-            note.setDraft(false);
-            try {
-                note.save();
-            } catch (ParseException e) {
-                note.setDraft(true);
-                throw e;
+        if (toServer) {
+            if (note.isDraft()) {
+                note.setDraft(false);
+                try {
+                    note.save();
+                } catch (ParseException e) {
+                    note.setDraft(true);
+                    throw e;
+                }
             }
         }
         note.pin(HomeNoteApplication.NOTE_GROUP_NAME);
     }
 
-    public static void saveSnippets(ArrayList<NoteSnippet> snippets) throws ParseException {
+    public static void saveSnippets(ArrayList<NoteSnippet> snippets, boolean toServer) throws ParseException {
         if (snippets == null) {
             return;
         }
-        ArrayList<NoteSnippet> draftSnippets = new ArrayList<>();
-        for (NoteSnippet snippet : snippets) {
-            if (snippet.isDraft()) {
-                draftSnippets.add(snippet);
-                snippet.setDraft(false);
+        if (toServer) {
+            ArrayList<NoteSnippet> draftSnippets = new ArrayList<>();
+            for (NoteSnippet snippet : snippets) {
+                if (snippet.isDraft()) {
+                    draftSnippets.add(snippet);
+                    snippet.setDraft(false);
+                }
+            }
+            try {
+                if (!draftSnippets.isEmpty()) {
+                    NoteSnippet.saveAll(draftSnippets);
+                }
+            } catch (ParseException e) {
+                for (NoteSnippet snippet : draftSnippets)
+                    snippet.setDraft(true);
+                throw e;
             }
         }
-        try {
-            if (!draftSnippets.isEmpty()) {
-                NoteSnippet.saveAll(draftSnippets);
-            }
-        } catch (ParseException e) {
-            for (NoteSnippet snippet : draftSnippets)
-                snippet.setDraft(true);
-            throw e;
-        }
-        NoteSnippet.pinAll(snippets);
+        NoteSnippet.pinAll(HomeNoteApplication.NOTE_GROUP_NAME, snippets);
     }
 
     public static boolean isNull(Object obj) {

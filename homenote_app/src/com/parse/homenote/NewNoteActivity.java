@@ -14,7 +14,9 @@ import java.util.List;
 public class NewNoteActivity extends Activity {
 
 	private Note note;
-    private ArrayList<NoteSnippet> dirtySnippets;
+    private ArrayList<NoteSnippet> tmpDirtySnippets;
+    private ArrayList<NoteSnippet> tmpDeletedSnippets;
+    private ArrayList<NoteSnippet> deletedSnippets;
 
     public void setNote(Note note_) {
         note = note_;
@@ -27,14 +29,27 @@ public class NewNoteActivity extends Activity {
     public void addDirtySnippet(NoteSnippet snippet) {
         if (snippet == null)
             return;
-        if (dirtySnippets == null)
-            dirtySnippets = new ArrayList<>();
-        if (!dirtySnippets.contains(snippet))
-            dirtySnippets.add(snippet);
+        if (tmpDirtySnippets == null)
+            tmpDirtySnippets = new ArrayList<>();
+        if (!tmpDirtySnippets.contains(snippet))
+            tmpDirtySnippets.add(snippet);
     }
 
-    public ArrayList<NoteSnippet> getDirtySnippets() {
-        return dirtySnippets;
+    public void addDeletedSnippet(NoteSnippet snippet) {
+        if (snippet == null)
+            return;
+        if (tmpDeletedSnippets == null)
+            tmpDeletedSnippets = new ArrayList<>();
+        if (deletedSnippets == null)
+            deletedSnippets = new ArrayList<>();
+        if (!tmpDeletedSnippets.contains(snippet))
+            tmpDeletedSnippets.add(snippet);
+        if (!deletedSnippets.contains(snippet))
+            deletedSnippets.add(snippet);
+    }
+
+    public boolean isSnippetDeleted(NoteSnippet snippet) {
+        return (deletedSnippets != null && deletedSnippets.contains(snippet));
     }
 
     private Fragment getFragment() {
@@ -75,7 +90,10 @@ public class NewNoteActivity extends Activity {
     }
 
     public boolean isNoteModified() {
-        if (dirtySnippets != null && dirtySnippets.size() > 0) {
+        if (tmpDirtySnippets != null && tmpDirtySnippets.size() > 0) {
+            return true;
+        }
+        if (tmpDeletedSnippets != null && tmpDeletedSnippets.size() > 0) {
             return true;
         }
         if (note != null && note.isDraft()) {
@@ -118,37 +136,36 @@ public class NewNoteActivity extends Activity {
     }
 
     public void saveNote(boolean finishView) {
-        boolean hasError = false;
-        if (dirtySnippets != null) {
-            try {
-                NoteSnippet.pinAll(HomeNoteApplication.NOTE_GROUP_NAME, dirtySnippets);
-            } catch (ParseException e) {
-                hasError = true;
-                Toast.makeText(getApplicationContext(),
-                        "Error saving note: " + e.getMessage(),
-                        Toast.LENGTH_LONG).show();
-            }
-            dirtySnippets.clear();
+        try {
+            saveNote(finishView, false);
+        } catch (ParseException e) {
+            Toast.makeText(getApplicationContext(),
+                    "Error saving note: " + e.getMessage(),
+                    Toast.LENGTH_LONG).show();
+        }
+    }
+
+    public void saveNote(boolean finishView, boolean toServer) throws ParseException {
+        if (tmpDeletedSnippets != null) {
+            if (tmpDirtySnippets != null)
+                tmpDirtySnippets.removeAll(tmpDeletedSnippets);
+            NoteUtils.deleteSnippets(tmpDeletedSnippets);
+            tmpDeletedSnippets.clear();
+        }
+        if (tmpDirtySnippets != null) {
+            NoteUtils.saveSnippets(tmpDirtySnippets, toServer);
+            tmpDirtySnippets.clear();
         }
         if (note != null && note.isDraft()) {
-            try {
-                note.pin(HomeNoteApplication.NOTE_GROUP_NAME);
-            } catch (ParseException e) {
-                hasError = true;
-                Toast.makeText(getApplicationContext(),
-                        "Error saving note: " + e.getMessage(),
-                        Toast.LENGTH_LONG).show();
-            }
+            NoteUtils.saveNote(note, toServer);
         }
 
-        if (!hasError) {
-            if (isFinishing()) {
-                return;
-            }
-            if (finishView) {
-                setResult(Activity.RESULT_OK);
-                finish();
-            }
+        if (isFinishing()) {
+            return;
+        }
+        if (finishView) {
+            setResult(Activity.RESULT_OK);
+            finish();
         }
     }
 

@@ -645,7 +645,7 @@ public class NewNoteFragment extends Fragment {
                 query.whereEqualTo("noteUuid", note.getUUIDString());
                 query.include(NoteSnippet.REMINDER_KEY + ".from");
                 query.include(NoteSnippet.REMINDER_KEY + ".to");
-                query.fromLocalDatastore();
+                query.fromPin(HomeNoteApplication.NOTE_GROUP_NAME);
                 query.orderByAscending(NoteSnippet.CREATED_TIME);
                 return query;
             }
@@ -786,7 +786,7 @@ public class NewNoteFragment extends Fragment {
         }
 
         private void mergeToPreviousSubView(ViewHolder holder, SnippetTextSubView subView) {
-            if (subView != null && subView.index > 0) {
+            if (subView != null) {
                 save();
                 NoteSnippet.ContentEntry ce = holder.snippet.getPreviousValidContentEntry(subView.index);
                 if (ce != null) {
@@ -802,17 +802,30 @@ public class NewNoteFragment extends Fragment {
                         }
                         holder.snippet.deleteContent(subView.index);
                         dirtySnippet(holder.snippet);
-                        snippetListAdapter.notifyDataSetChanged();
+                        notifyDataSetChanged();
                     }
                 } else {
                     ce = holder.snippet.getNextValidContentEntry(subView.index);
                     if (ce == null) {
-                        if (snippetListAdapter.getCount() > 1) {
-                            //TODO: delete the current snippet and refresh
-                        }
-                    } else {
-                        // do nothing because the snippet is not empty
-                    }
+                        //TODO: this is not accurate
+                        if (getCount() > 1) {
+                            // delete the current snippet and refresh
+                            for (int i=0; i<getCount(); i++) {
+                                if (getItem(i) == holder.snippet) {
+                                    if (i==0) {
+                                        NoteSnippet toFocusSnippet = getItem(i + 1);
+                                        getNote().setCursorPosition(toFocusSnippet, 0, 0);
+                                    } else {
+                                        NoteSnippet toFocusSnippet = getItem(i - 1);
+                                        getNote().setCursorPosition(toFocusSnippet, toFocusSnippet.size() - 1, -1);
+                                    }
+                                    getNoteActivity().addDeletedSnippet(holder.snippet);
+                                    notifyDataSetChanged();
+                                    break;
+                                }
+                            }
+                        } // else do nothing because this is the last snippet
+                    } // else do nothing because the snippet is not empty
                 }
             }
         }
@@ -1024,10 +1037,38 @@ public class NewNoteFragment extends Fragment {
             }
         }
 
+        public View getNewSnippetView(View view, ViewGroup parent) {
+            if (view == null) {
+                view = inflater.inflate(R.layout.note_item_snippet, parent, false);
+                TextView metadata = (TextView) view
+                        .findViewById(R.id.snippet_meta_data);
+                metadata.setText(R.string.new_page);
+                LinearLayout viewContainer = (LinearLayout) view.findViewById(R.id.snippet_linear_layout);
+                EditText editText = (EditText) inflater.inflate(R.layout.snippet_edittext, parent, false);
+                viewContainer.addView(editText);
+                editText.setHint(R.string.new_page_hint);
+                editText.clearFocus();
+                editText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                    @Override
+                    public void onFocusChange(View v, boolean hasFocus) {
+                        if (hasFocus) {
+                            NoteSnippet last = getNote().createNewLastSnippet();
+                            getNote().setCursorPosition(last, 0, 0);
+                            dirtySnippet(last);
+                            getNoteActivity().saveNote(false);
+                            loadObjects();
+                        }
+                    }
+                });
+            }
+            return view;
+        }
+
         public View getItemView(final NoteSnippet snippet, View view, ViewGroup parent) {
             if (snippet == null || getNote() == null) {
-                return view;
+                return null;
             }
+
             final ViewHolder holder;
             disableListeners = true;
             boolean reuseView = true;
@@ -1049,7 +1090,6 @@ public class NewNoteFragment extends Fragment {
                         if (actionMode != null) {
                             return false;
                         }
-
                         // Start the CAB using the ActionMode.Callback defined above
                         actionMode = getActivity().startActionMode(modeCallBack);
                         actionMode.setTag(holder);
@@ -1160,6 +1200,7 @@ public class NewNoteFragment extends Fragment {
         NoteSnippetListAdapter snippetListAdapter;
         ArrayList<NoteSnippet> snippets;
         ArrayList<View> snippetViews;
+        View newSnippetView;
 
         SnippetListView(LinearLayout container, NoteSnippetListAdapter snippetListAdapter) {
             this.container = container;
@@ -1183,26 +1224,39 @@ public class NewNoteFragment extends Fragment {
             });
         }
 
-        /**
-         * Assuming no deletion of snippets which is true currently
-         * //clear all views and add them back again
-         */
         public void syncWithSnippetData() {
+            NewNoteActivity activity = getNoteActivity();
             for (int i=0; i<snippetListAdapter.getCount(); i++) {
                 NoteSnippet s = (NoteSnippet) snippetListAdapter.getItem(i);
-                if (snippets.size() > i && !snippets.get(i).getUUIDString().equals(s.getUUIDString())) {
+                int idx = snippets.indexOf(s);
+                if (idx == -1) {
                     View v = snippetListAdapter.getItemView(s, null, null);
-                    snippets.add(i, s);
-                    container.addView(v, i);
-                    snippetViews.add(i, v);
-                } else if (snippets.size() <= i) {
-                    snippets.add(s);
-                    View v = snippetListAdapter.getItemView(s, null, null);
-                    container.addView(v);
-                    snippetViews.add(v);
+                    if (snippets.size() <= i) {
+                        container.addView(v, snippets.size());
+                        snippets.add(s);
+                        snippetViews.add(v);
+                    } else {
+                        snippets.add(i, s);
+                        container.addView(v, i);
+                        snippetViews.add(i, v);
+                    }
                 } else {
-                    snippetListAdapter.getItemView(s, snippetViews.get(i), null);
+                    for (int j=idx-1; j>=i; j--) {
+                        View v = snippetViews.get(j);
+                        container.removeView(v);
+                        snippetViews.remove(j);
+                        snippets.remove(j);
+                    }
+                    if (activity.isSnippetDeleted(s)) {
+                        snippetViews.get(i).setVisibility(View.GONE);
+                    } else {
+                        snippetListAdapter.getItemView(s, snippetViews.get(i), null);
+                    }
                 }
+            }
+            if (newSnippetView == null) {
+                newSnippetView = snippetListAdapter.getNewSnippetView(newSnippetView, null);
+                container.addView(newSnippetView);
             }
         }
     }
@@ -1220,14 +1274,7 @@ public class NewNoteFragment extends Fragment {
             try {
                 stopSharing(params[0].toRemoveUsers);
                 shareNote(ParseUser.getCurrentUser(), params[0].toShareUsers);
-                // save snippets
-                ArrayList<NoteSnippet> dirtySnippets = getNoteActivity().getDirtySnippets();
-                if (dirtySnippets != null) {
-                    NoteUtils.saveSnippets(dirtySnippets);
-                    dirtySnippets.clear();
-                }
-                // save note
-                NoteUtils.saveNote(getNote());
+                getNoteActivity().saveNote(false, true);
                 return true;
             } catch (ParseException e) {
                 return false;

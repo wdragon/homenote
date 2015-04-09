@@ -42,4 +42,6 @@
     <string name="action_imagepicker_add_photo">Add</string>
     <string name="action_imagepicker_add_photo_enabled">Add (%1$d)</string>
     <string name="dialog_share_typeahead_hint">Ex: tom, 123-456-7890</string>
+    <string name="new_page">New page</string>
+    <string name="new_page_hint">(Click to create a new page...)</string>
 </resources>
