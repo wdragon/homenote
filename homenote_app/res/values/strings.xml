@@ -44,4 +44,8 @@
     <string name="dialog_share_typeahead_hint">Ex: tom, 123-456-7890</string>
     <string name="new_page">New page</string>
     <string name="new_page_hint">(Click to create a new page...)</string>
+    <string name="update_sharing_spinner">Update sharing...</string>
+    <string name="auto_save_spinner">Saving...</string>
+    <string name="auto_save_finished">Saved</string>
+    <string name="auto_save_failed">Failed to save, will retry</string>
 </resources>

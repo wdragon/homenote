@@ -25,6 +25,8 @@ import com.parse.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import static com.parse.homenote.NoteSnippetContentType.*;
 
@@ -43,6 +45,8 @@ public class NewNoteFragment extends Fragment {
     private Menu menu;
     private TextView headerTextView;
     private ProgressBar progressBar;
+
+    private Timer autoSaveTimer;
 
     NoteTaskRateTracker loadSnippetInBackground;
 
@@ -238,15 +242,15 @@ public class NewNoteFragment extends Fragment {
         return super.onOptionsItemSelected(item);
     }
 
-    private void showHeaderProgressBar(String message) {
-        if (message != null) {
-            this.headerTextView.setText(message);
+    private void showHeaderProgressBar(int resid) {
+        if (resid != 0) {
+            this.headerTextView.setText(resid);
         }
         this.progressBar.setVisibility(View.VISIBLE);
     }
 
-    private void hideHeaderProgressBar() {
-        this.headerTextView.setText(R.string.note_prompt);
+    private void hideHeaderProgressBar(int resid) {
+        this.headerTextView.setText((resid != 0) ? resid : R.string.note_prompt);
         this.progressBar.setVisibility(View.INVISIBLE);
     }
 
@@ -443,7 +447,7 @@ public class NewNoteFragment extends Fragment {
                 if (toRemovedUsers.isEmpty() && toShareUsers.isEmpty())
                     return;
 
-                showHeaderProgressBar("Update sharing...");
+                showHeaderProgressBar(R.string.update_sharing_spinner);
                 UpdateNoteSharingTaskParams params = new UpdateNoteSharingTaskParams();
                 params.toRemoveUsers = toRemovedUsers;
                 params.toShareUsers = toShareUsers;
@@ -684,6 +688,34 @@ public class NewNoteFragment extends Fragment {
         }
     }
 
+    public void startAutoSave() {
+        if (autoSaveTimer != null) {
+            autoSaveTimer.cancel();
+            autoSaveTimer.purge();
+            autoSaveTimer = null;
+        }
+
+        autoSaveTimer = new Timer();
+        autoSaveTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                if (snippetListAdapter != null)
+                    snippetListAdapter.save();
+                NewNoteActivity activity = getNoteActivity();
+                if (activity == null || !activity.isNoteModified() || activity.isFinishing())
+                    return;
+
+                activity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        showHeaderProgressBar(R.string.auto_save_spinner);
+                        new AutoSaveNoteTask().execute();
+                    }
+                });
+            }
+        }, 10000);
+    }
+
     private abstract class SnippetSubView {
         int index;
         int type;
@@ -879,7 +911,11 @@ public class NewNoteFragment extends Fragment {
             });
             subView.text.addTextChangedListener(new TextWatcher() {
                 @Override
-                public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                    if (disableListeners)
+                        return;
+                    hideHeaderProgressBar(0);
+                }
                 @Override
                 public void onTextChanged(CharSequence s, int start, int before, int count) {
                     if (disableListeners)
@@ -887,7 +923,11 @@ public class NewNoteFragment extends Fragment {
                     subView.edited = true;
                 }
                 @Override
-                public void afterTextChanged(Editable s) {}
+                public void afterTextChanged(Editable s) {
+                    if (disableListeners)
+                        return;
+                    startAutoSave();
+                }
             });
 
             subView.text.setOnKeyListener(new View.OnKeyListener() {
@@ -982,7 +1022,11 @@ public class NewNoteFragment extends Fragment {
             });
             subView.text.addTextChangedListener(new TextWatcher() {
                 @Override
-                public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                    if (disableListeners)
+                        return;
+                    hideHeaderProgressBar(0);
+                }
                 @Override
                 public void onTextChanged(CharSequence s, int start, int before, int count) {
                     if (disableListeners)
@@ -990,7 +1034,11 @@ public class NewNoteFragment extends Fragment {
                     subView.edited = true;
                 }
                 @Override
-                public void afterTextChanged(Editable s) {}
+                public void afterTextChanged(Editable s) {
+                    if (disableListeners)
+                        return;
+                    startAutoSave();
+                }
             });
             subView.text.setOnKeyListener(new View.OnKeyListener() {
                 @Override
@@ -1266,6 +1314,30 @@ public class NewNoteFragment extends Fragment {
         ArrayList<ParseUser> toShareUsers;
     }
 
+    private class AutoSaveNoteTask extends AsyncTask<Void, Void, NoteAsyncTaskResult> {
+
+        @Override
+        protected NoteAsyncTaskResult doInBackground(Void... params) {
+            NoteAsyncTaskResult result = new NoteAsyncTaskResult();
+            try {
+                getNoteActivity().saveNote(false, true);
+                result.succeeded = true;
+            } catch (ParseException e) {
+                result.succeeded = false;
+                result.exception = e;
+            }
+            return result;
+        }
+
+        protected void onPostExecute(NoteAsyncTaskResult result) {
+            if (result.succeeded) {
+                hideHeaderProgressBar(R.string.auto_save_finished);
+            } else {
+                hideHeaderProgressBar(R.string.auto_save_failed);
+            }
+        }
+    }
+
     private class UpdateNoteSharingTask extends AsyncTask<UpdateNoteSharingTaskParams, Void, Boolean> {
         UpdateNoteSharingTaskParams param;
 
@@ -1286,7 +1358,7 @@ public class NewNoteFragment extends Fragment {
         protected void onPostExecute(Boolean result) {
             if (result) {
                 snippetListAdapter.notifyDataSetChanged();
-                hideHeaderProgressBar();
+                hideHeaderProgressBar(0);
 
                 if (!this.param.toShareUsers.isEmpty()) {
                     ArrayList<String> userNames = new ArrayList<String>();
