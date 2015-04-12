@@ -1338,25 +1338,28 @@ public class NewNoteFragment extends Fragment {
         }
     }
 
-    private class UpdateNoteSharingTask extends AsyncTask<UpdateNoteSharingTaskParams, Void, Boolean> {
+    private class UpdateNoteSharingTask extends AsyncTask<UpdateNoteSharingTaskParams, Void, NoteAsyncTaskResult> {
         UpdateNoteSharingTaskParams param;
 
-        protected Boolean doInBackground(UpdateNoteSharingTaskParams... params) {
+        protected NoteAsyncTaskResult doInBackground(UpdateNoteSharingTaskParams... params) {
+            NoteAsyncTaskResult result = new NoteAsyncTaskResult();
             this.param = params[0];
             try {
                 stopSharing(params[0].toRemoveUsers);
                 shareNote(ParseUser.getCurrentUser(), params[0].toShareUsers);
                 getNoteActivity().saveNote(false, true);
-                return true;
+                result.succeeded = true;
             } catch (ParseException e) {
-                return false;
+                result.succeeded = false;
+                result.exception = e;
             }
+            return result;
         }
 
         /** The system calls this to perform work in the UI thread and delivers
          * the result from doInBackground() */
-        protected void onPostExecute(Boolean result) {
-            if (result) {
+        protected void onPostExecute(NoteAsyncTaskResult result) {
+            if (result.succeeded) {
                 snippetListAdapter.notifyDataSetChanged();
                 hideHeaderProgressBar(0);
 

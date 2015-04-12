@@ -55,8 +55,8 @@
           <file leaf-file-name="NewNoteFragment.java" pinned="false" current="true" current-in-tab="true">
             <entry file="file://$PROJECT_DIR$/homenote_app/src/com/parse/homenote/NewNoteFragment.java">
               <provider selected="true" editor-type-id="text-editor">
-                <state vertical-scroll-proportion="0.15668203" vertical-offset="11050" max-vertical-offset="23341">
-                  <caret line="702" column="20" selection-start-line="702" selection-start-column="20" selection-end-line="702" selection-end-column="20" />
+                <state vertical-scroll-proportion="1.235023" vertical-offset="22040" max-vertical-offset="23392">
+                  <caret line="1396" column="13" selection-start-line="1396" selection-start-column="13" selection-end-line="1396" selection-end-column="13" />
                   <folding>
                     <element signature="imports" expanded="true" />
                     <element signature="e#9243#9263#0" expanded="true" />
@@ -74,8 +74,8 @@
                     <element signature="e#46634#46635#0" expanded="true" />
                     <element signature="e#56287#56314#0" expanded="true" />
                     <element signature="e#56376#56401#0" expanded="true" />
-                    <element signature="e#57465#57473#0" expanded="true" />
-                    <element signature="e#58184#58192#0" expanded="true" />
+                    <element signature="e#57668#57676#0" expanded="true" />
+                    <element signature="e#58387#58395#0" expanded="true" />
                   </folding>
                 </state>
               </provider>
@@ -2812,13 +2812,13 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/homenote_app/src/com/parse/homenote/NewNoteFragment.java</url>
-          <line>1344</line>
+          <line>1345</line>
           <properties />
           <option name="timeStamp" value="292" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/homenote_app/src/com/parse/homenote/NewNoteFragment.java</url>
-          <line>1358</line>
+          <line>1361</line>
           <properties />
           <option name="timeStamp" value="293" />
         </line-breakpoint>
@@ -2860,7 +2860,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/homenote_app/src/com/parse/homenote/NewNoteFragment.java</url>
-          <line>1421</line>
+          <line>1424</line>
           <properties />
           <option name="timeStamp" value="314" />
         </line-breakpoint>
@@ -3336,8 +3336,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/homenote_app/src/com/parse/homenote/NewNoteFragment.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.15668203" vertical-offset="11050" max-vertical-offset="23341">
-          <caret line="702" column="20" selection-start-line="702" selection-start-column="20" selection-end-line="702" selection-end-column="20" />
+        <state vertical-scroll-proportion="1.235023" vertical-offset="22040" max-vertical-offset="23392">
+          <caret line="1396" column="13" selection-start-line="1396" selection-start-column="13" selection-end-line="1396" selection-end-column="13" />
           <folding>
             <element signature="imports" expanded="true" />
             <element signature="e#9243#9263#0" expanded="true" />
@@ -3355,8 +3355,8 @@
             <element signature="e#46634#46635#0" expanded="true" />
             <element signature="e#56287#56314#0" expanded="true" />
             <element signature="e#56376#56401#0" expanded="true" />
-            <element signature="e#57465#57473#0" expanded="true" />
-            <element signature="e#58184#58192#0" expanded="true" />
+            <element signature="e#57668#57676#0" expanded="true" />
+            <element signature="e#58387#58395#0" expanded="true" />
           </folding>
         </state>
       </provider>
