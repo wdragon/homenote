@@ -713,7 +713,7 @@ public class NewNoteFragment extends Fragment {
                     }
                 });
             }
-        }, 10000);
+        }, 5000);
     }
 
     private abstract class SnippetSubView {
