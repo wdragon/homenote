@@ -93,6 +93,14 @@ public class NoteListActivity extends Activity {
         LinearLayout noNotesView = (LinearLayout) findViewById(R.id.no_todos_view);
         noteListView.setEmptyView(noNotesView);
 
+        // Empty view can be clicked
+        noNotesView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                createNewNote();
+            }
+        });
+
         // Set up the Parse query to use in the adapter
         ParseQueryAdapter.QueryFactory<Note> factory = new ParseQueryAdapter.QueryFactory<Note>() {
             public ParseQuery<Note> create() {
@@ -194,12 +202,7 @@ public class NoteListActivity extends Activity {
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		if (item.getItemId() == R.id.action_new) {
-			// Make sure there's a valid user, anonymous
-			// or regular
-			if (ParseUser.getCurrentUser() != null) {
-				startActivityForResult(new Intent(this, NewNoteActivity.class),
-						EDIT_ACTIVITY_CODE);
-			}
+            createNewNote();
 		}
 
 		if (item.getItemId() == R.id.action_sync) {
@@ -259,6 +262,15 @@ public class NoteListActivity extends Activity {
 
             refreshActionView.startAnimation(clockwiseRefresh);
             refreshItem.setActionView(refreshActionView);
+        }
+    }
+
+    private void createNewNote() {
+        // Make sure there's a valid user, anonymous
+        // or regular
+        if (ParseUser.getCurrentUser() != null) {
+            startActivityForResult(new Intent(this, NewNoteActivity.class),
+                    EDIT_ACTIVITY_CODE);
         }
     }
 
