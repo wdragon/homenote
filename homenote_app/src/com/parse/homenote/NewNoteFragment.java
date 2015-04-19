@@ -64,16 +64,20 @@ public class NewNoteFragment extends Fragment {
                     query.findInBackground(new FindCallback<NoteSnippet>() {
                         @Override
                         public void done(List<NoteSnippet> noteSnippets, ParseException e) {
-                            if (e == null) {
-                                getNoteActivity().pinSnippets(noteSnippets);
-                                if (snippetListAdapter != null) {
-                                    // refresh view is view is there
-                                    snippetListAdapter.loadObjects();
+                            NewNoteActivity activity = getNoteActivity();
+                            if (activity != null) {
+                                if (e == null) {
+                                    activity.pinSnippets(noteSnippets);
+                                    if (snippetListAdapter != null) {
+                                        // refresh view is view is there
+                                        snippetListAdapter.loadObjects();
+                                    }
+
+                                } else {
+                                    Toast.makeText(getActivity(),
+                                            "Unable to load note from server: " + e.getMessage(),
+                                            Toast.LENGTH_LONG).show();
                                 }
-                            } else {
-                                Toast.makeText(getActivity(),
-                                        "Unable to load note from server: " + e.getMessage(),
-                                        Toast.LENGTH_LONG).show();
                             }
                         }
                     });

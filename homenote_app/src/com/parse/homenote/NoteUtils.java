@@ -4,6 +4,7 @@ import android.content.Context;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
 
+import com.parse.ParseAnonymousUtils;
 import com.parse.ParseException;
 import com.parse.ParseUser;
 
@@ -181,5 +182,9 @@ public class NoteUtils {
 
     public static long getSnoozeTimeInMillis() {
         return Calendar.getInstance().getTimeInMillis() + DateUtils.MINUTE_IN_MILLIS * REMINDER_SNOOZE_MINUTES;
+    }
+
+    public static boolean isAnonymouseUser() {
+        return ParseAnonymousUtils.isLinked(ParseUser.getCurrentUser());
     }
 }

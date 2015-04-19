@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.graphics.Typeface;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -27,7 +28,6 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.parse.FindCallback;
 import com.parse.GetDataCallback;
 import com.parse.ParseAnonymousUtils;
 import com.parse.ParseException;
@@ -35,7 +35,6 @@ import com.parse.ParseObject;
 import com.parse.ParseQuery;
 import com.parse.ParseQueryAdapter;
 import com.parse.ParseUser;
-import com.parse.SaveCallback;
 import com.parse.ui.ParseLoginBuilder;
 
 import static com.parse.homenote.NoteSnippetContentType.*;
@@ -58,10 +57,7 @@ public class NoteListActivity extends Activity {
     private MenuItem refreshItem;
     private ImageView refreshActionView;
     private Animation clockwiseRefresh;
-    private int syncFromParseCount = 0;
-    private int syncFromParseTotal = 0;
-    private int syncToParseCount = 0;
-    private int syncToParseTotal = 0;
+    private boolean duringSyncAnimation = false;
 
     @Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -80,7 +76,7 @@ public class NoteListActivity extends Activity {
 	protected void onResume() {
 		super.onResume();
 		// Check if we have a real user
-		if (!ParseAnonymousUtils.isLinked(ParseUser.getCurrentUser())) {
+		if (!NoteUtils.isAnonymouseUser()) {
 			// Sync data to Parse
             syncWithParse();
 			// Update the logged in label info
@@ -150,7 +146,7 @@ public class NoteListActivity extends Activity {
     }
 
 	private void updateLoggedInInfo() {
-		if (!ParseAnonymousUtils.isLinked(ParseUser.getCurrentUser())) {
+		if (!NoteUtils.isAnonymouseUser()) {
 			ParseUser currentUser = ParseUser.getCurrentUser();
 			loggedInInfoView.setText(getString(R.string.logged_in,
 					currentUser.getString("name")));
@@ -175,15 +171,9 @@ public class NoteListActivity extends Activity {
 				// Coming back from the edit view, update the view
 				noteListAdapter.loadObjects();
 			} else if (requestCode == LOGIN_ACTIVITY_CODE) {
-				// If the user is new, sync data to Parse,
-				// else get the current list from Parse
-				if (ParseUser.getCurrentUser().isNew()) {
-					syncNotesToParse();
-				} else {
-					loadFromParse();
-				}
+                // Rename owners of the local contents
+			    syncWithParse(false);
 			}
-
 		}
 	}
 
@@ -192,7 +182,7 @@ public class NoteListActivity extends Activity {
 		getMenuInflater().inflate(R.menu.note_list, menu);
 
         refreshItem = menu.findItem(R.id.action_sync);
-        if (syncFromParseCount < syncFromParseTotal || syncToParseCount < syncToParseTotal) {
+        if (duringSyncAnimation) {
             startSyncAnimation();
         }
 
@@ -206,7 +196,7 @@ public class NoteListActivity extends Activity {
 		}
 
 		if (item.getItemId() == R.id.action_sync) {
-            syncWithParse();
+            syncWithParse(true);
 		}
 
 		if (item.getItemId() == R.id.action_logout) {
@@ -234,19 +224,17 @@ public class NoteListActivity extends Activity {
 	@Override
 	public boolean onPrepareOptionsMenu(Menu menu) {
 		super.onPrepareOptionsMenu(menu);
-		boolean realUser = !ParseAnonymousUtils.isLinked(ParseUser
-				.getCurrentUser());
+		boolean realUser = !NoteUtils.isAnonymouseUser();
 		menu.findItem(R.id.action_login).setVisible(!realUser);
 		menu.findItem(R.id.action_logout).setVisible(realUser);
 		return true;
 	}
 
-    private void checkAndStopAnimation() {
-        if (syncFromParseCount >= syncFromParseTotal && syncToParseCount >= syncToParseTotal) {
-            if (refreshItem != null && refreshItem.getActionView() != null) {
-                refreshItem.getActionView().clearAnimation();
-                refreshItem.setActionView(null);
-            }
+    private void stopSyncAnimation() {
+        duringSyncAnimation = false;
+        if (refreshItem != null && refreshItem.getActionView() != null) {
+            refreshItem.getActionView().clearAnimation();
+            refreshItem.setActionView(null);
         }
     }
 
@@ -275,244 +263,18 @@ public class NoteListActivity extends Activity {
     }
 
     private void syncWithParse() {
-        startSyncAnimation();
-
-        syncNotesToParse();
-        loadFromParse();
+        syncWithParse(false);
     }
 
-	private void syncNotesToParse() {
-		// We could use saveEventually here, but we want to have some UI
-		// around whether or not the draft has been saved to Parse
-        syncToParseCount = 0;
-        syncToParseTotal = 0;
-
-		ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-		NetworkInfo ni = cm.getActiveNetworkInfo();
-		if ((ni != null) && (ni.isConnected())) {
-			if (!ParseAnonymousUtils.isLinked(ParseUser.getCurrentUser())) {
-                syncToParseTotal += 2;
-				// If we have a network connection and a current logged in user,
-				// sync the notes
-
-				// In this app, local changes should overwrite content on the
-				// server.
-                ParseQuery<Note> noteQuery = Note.getQuery();
-                noteQuery.fromPin(HomeNoteApplication.NOTE_GROUP_NAME);
-                noteQuery.whereEqualTo("isDraft", true);
-                noteQuery.whereEqualTo("authors", ParseUser.getCurrentUser());
-                noteQuery.findInBackground(new FindCallback<Note>() {
-                    public void done(List<Note> notes, ParseException e) {
-                        syncToParseCount ++;
-                        checkAndStopAnimation();
-                        if (e == null) {
-                            for (final Note note : notes) {
-                                // Set is draft flag to false before
-                                // syncing to Parse
-                                syncToParseTotal ++;
-                                note.setDraft(false);
-                                note.getLastSnippet().setDraft(false);
-                                note.saveInBackground(new SaveCallback() {
-                                    @Override
-                                    public void done(ParseException e) {
-                                        syncToParseCount ++;
-                                        checkAndStopAnimation();
-                                        if (e == null) {
-                                            // Let adapter know to update view
-                                            if (!isFinishing()) {
-                                                //noteListAdapter.loadObjects();
-                                            }
-                                        } else {
-                                            // Reset the is draft flag locally
-                                            // to true
-                                            String message = "failed to save note to server";
-                                            Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
-                                            note.setDraft(true);
-                                        }
-                                    }
-
-                                });
-                            }
-                        } else {
-                            String message = "syncNotesToParse: Error finding pinned notes: " + e.getMessage();
-                            Log.i("NoteListActivity", message);
-                            Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
-                        }
-                    }
-                });
-
-                ParseQuery<NoteSnippet> snippetQuery = NoteSnippet.getQuery();
-                snippetQuery.fromPin(HomeNoteApplication.NOTE_GROUP_NAME);
-                snippetQuery.whereEqualTo("isDraft", true);
-                snippetQuery.whereMatchesKeyInQuery("noteUuid", "uuid", noteQuery);
-                snippetQuery.findInBackground(new FindCallback<NoteSnippet>() {
-                    public void done(List<NoteSnippet> snippets, ParseException e) {
-                        syncToParseCount ++;
-                        checkAndStopAnimation();
-                        if (e == null) {
-                            for (final NoteSnippet snippet: snippets) {
-                                // Set is draft flag to false before
-                                // syncing to Parse
-                                syncToParseTotal ++;
-                                snippet.setDraft(false);
-                                snippet.saveInBackground(new SaveCallback() {
-                                    @Override
-                                    public void done(ParseException e) {
-                                        syncToParseCount ++;
-                                        checkAndStopAnimation();
-                                        if (e != null) {
-                                            // Reset the is draft flag locally
-                                            // to true
-                                            String message = "Failed to save note content to server";
-                                            Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
-                                            snippet.setDraft(true);
-                                        }
-                                    }
-
-                                });
-                            }
-                        } else {
-                            String message = "syncNotesToParse: Error finding pinned note content: " + e.getMessage();
-                            Log.i("NoteListActivity", message);
-                            Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
-                        }
-                    }
-                });
-			} else {
-				// If we have a network connection but no logged in user, direct
-				// the person to log in or sign up.
-				ParseLoginBuilder builder = new ParseLoginBuilder(this);
-				startActivityForResult(builder.build(), LOGIN_ACTIVITY_CODE);
-			}
-		} else {
-			// If there is no connection, let the user know the sync didn't
-			// happen
-			Toast.makeText(
-					getApplicationContext(),
-					"Your device appears to be offline. Some notes may not have been synced to Parse.",
-					Toast.LENGTH_LONG).show();
-		}
-        checkAndStopAnimation();
-	}
-
-	private void loadFromParse() {
-        // TODO: move to async task
-        // TODO: load the real last note
-        syncFromParseCount = 0;
-        syncFromParseTotal = 0;
-
-        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo ni = cm.getActiveNetworkInfo();
-        if ((ni != null) && (ni.isConnected())) {
-            syncFromParseTotal += 2;
-
-            ParseQuery<Note> query = Note.getQueryForRender();
-            query.whereEqualTo("authors", ParseUser.getCurrentUser());
-            // Include all local notes so that we could clean them up
-            List<Note> localNotes = null;
-            try {
-                ParseQuery<Note> localNoteQuery = Note.getQuery();
-                localNoteQuery.fromPin(HomeNoteApplication.NOTE_GROUP_NAME);
-                localNoteQuery.whereEqualTo("authors", ParseUser.getCurrentUser());
-                localNotes = localNoteQuery.find();
-                if (localNotes != null && localNotes.size() > 0) {
-                    ArrayList<String> localNoteIds = new ArrayList<>();
-                    for (Note note : localNotes)
-                        localNoteIds.add(note.getUUIDString());
-                    ParseQuery<Note> query1 = Note.getQuery();
-                    query1.whereContainedIn(ParseObjectWithUUID.UUID_KEY, localNoteIds);
-                    ParseQuery<Note> query2 = Note.getQuery();
-                    query2.whereEqualTo("authors", ParseUser.getCurrentUser());
-                    ArrayList<ParseQuery<Note>> queries = new ArrayList<ParseQuery<Note>>();
-                    queries.add(query1);
-                    queries.add(query2);
-                    query = ParseQuery.or(queries);
-                    query = Note.getQueryForRender(query);
-                }
-            } catch (ParseException e) {}
-            final List<Note> localNotesFinal = localNotes;
-
-            query.findInBackground(new FindCallback<Note>() {
-                public void done(List<Note> notes, ParseException e) {
-                    syncFromParseCount++;
-                    checkAndStopAnimation();
-                    if (e == null) {
-                        syncFromParseTotal++;
-
-                        localNotesFinal.removeAll(notes);
-                        if (localNotesFinal.size() > 0) {
-                            try {
-                                Note.unpinAll(HomeNoteApplication.NOTE_GROUP_NAME, localNotesFinal);
-                            } catch (ParseException e1) {
-                                e1.printStackTrace();
-                            }
-                        }
-
-                        ParseObject.pinAllInBackground(
-                                HomeNoteApplication.NOTE_GROUP_NAME,
-                                (List<Note>) notes,
-                                new SaveCallback() {
-                                    public void done(ParseException e) {
-                                        syncFromParseCount++;
-                                        checkAndStopAnimation();
-                                        if (e == null) {
-                                            if (!isFinishing()) {
-                                                noteListAdapter.loadObjects();
-                                            }
-                                        } else {
-                                            String message = "Error pinning notes: " + e.getMessage();
-                                            Log.i("NoteListActivity", message);
-                                            Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
-                                        }
-                                    }
-                                });
-                    } else {
-                        String message = "loadFromParse: Error finding pinned notes: " + e.getMessage();
-                        Log.i("NoteListActivity", message);
-                    }
-                }
-            });
-
-            // TODO: Shared notes, do we need it?
-            ParseQuery<NoteShare> innerQuery = NoteShare.getQuery();
-            innerQuery.whereEqualTo("to", ParseUser.getCurrentUser());
-            innerQuery.whereEqualTo("confirmed", true);
-            ParseQuery<Note> queryShared = Note.getQueryForRender();
-            queryShared.orderByDescending(Note.UPDATED_TIME);
-            queryShared.whereMatchesKeyInQuery("uuid", "noteUUID", innerQuery);
-            queryShared.whereEqualTo("authors", ParseUser.getCurrentUser());
-            queryShared.findInBackground(new FindCallback<Note>() {
-                public void done(List<Note> notes, ParseException e) {
-                    syncFromParseCount++;
-                    checkAndStopAnimation();
-                    if (e == null) {
-                        syncFromParseTotal++;
-                        ParseObject.pinAllInBackground(
-                                HomeNoteApplication.NOTE_GROUP_NAME,
-                                (List<Note>) notes,
-                                new SaveCallback() {
-                                    public void done(ParseException e) {
-                                        syncFromParseCount++;
-                                        checkAndStopAnimation();
-                                        if (e == null) {
-                                            if (!isFinishing()) {
-                                                noteListAdapter.loadObjects();
-                                            }
-                                        } else {
-                                            String message = "Error pinning notes: " + e.getMessage();
-                                            Log.i("NoteListActivity", message);
-                                            Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
-                                        }
-                                    }
-                                });
-                    } else {
-                        String message = "loadFromParse: Error finding pinned notes: " + e.getMessage();
-                        Log.i("NoteListActivity", message);
-                    }
-                }
-            });
+    private void syncWithParse(boolean allowLogin) {
+        if (!NoteUtils.isAnonymouseUser()) {
+            startSyncAnimation();
+            SyncNotesWithParseTask task = new SyncNotesWithParseTask();
+            task.execute();
+        } else if (allowLogin) {
+            ParseLoginBuilder builder = new ParseLoginBuilder(this);
+            startActivityForResult(builder.build(), LOGIN_ACTIVITY_CODE);
         }
-        checkAndStopAnimation();
     }
 
 	private class NoteListAdapter extends ParseQueryAdapter<Note> {
@@ -690,4 +452,120 @@ public class NoteListActivity extends Activity {
         }
     }
 
+    private class SyncNotesWithParseTask extends AsyncTask<Void, Void, NoteAsyncTaskResult> {
+        @Override
+        protected NoteAsyncTaskResult doInBackground(Void... params) {
+            duringSyncAnimation = true;
+            NoteAsyncTaskResult result = new NoteAsyncTaskResult();
+            if (!NoteUtils.isAnonymouseUser()) {
+                ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+                NetworkInfo ni = cm.getActiveNetworkInfo();
+                if ((ni != null) && (ni.isConnected())) {
+                    // If we have a network connection and a current logged in user,
+                    // sync the notes
+                    // In this app, local changes should overwrite content on the
+                    // server.
+                    ParseQuery<Note> noteQuery = Note.getQuery();
+                    noteQuery.fromPin(HomeNoteApplication.NOTE_GROUP_NAME);
+                    noteQuery.whereEqualTo("isDraft", true);
+                    noteQuery.whereEqualTo("authors", ParseUser.getCurrentUser());
+                    List<Note> draftNotes = null;
+                    try {
+                        draftNotes = noteQuery.find();
+                        if (draftNotes != null && draftNotes.size() > 0) {
+                            for (Note note : draftNotes)
+                                note.setDraft(false);
+                            Note.saveAll(draftNotes);
+                        }
+                    } catch (ParseException e) {
+                        if (draftNotes != null && draftNotes.size() > 0) {
+                            for (Note note : draftNotes)
+                                note.setDraft(true);
+                        }
+                        result.succeeded = false;
+                        result.exception = new Exception("Error saving notes to the cloud");
+                        return result;
+                    }
+
+                    ParseQuery<NoteSnippet> snippetQuery = NoteSnippet.getQuery();
+                    snippetQuery.fromPin(HomeNoteApplication.NOTE_GROUP_NAME);
+                    snippetQuery.whereEqualTo("isDraft", true);
+                    snippetQuery.whereMatchesKeyInQuery("noteUuid", "uuid", noteQuery);
+                    List<NoteSnippet> draftSnippets = null;
+                    try {
+                        draftSnippets = snippetQuery.find();
+                        if (draftSnippets != null && draftSnippets.size() > 0) {
+                            for (NoteSnippet snippet : draftSnippets)
+                                snippet.setDraft(false);
+                            NoteSnippet.saveAll(draftSnippets);
+                        }
+                    } catch (ParseException e) {
+                        if (draftSnippets != null && draftSnippets.size() > 0) {
+                            for (NoteSnippet snippet : draftSnippets)
+                                snippet.setDraft(true);
+                        }
+                        result.succeeded = false;
+                        result.exception = new Exception("Error saving notes to the cloud");
+                        return result;
+                    }
+
+                    ParseQuery<Note> serverNoteQuery = Note.getQueryForRender();
+                    serverNoteQuery.whereEqualTo("authors", ParseUser.getCurrentUser());
+                    // Include all local notes so that we could clean them up
+                    List<Note> localNotes = null;
+                    ParseQuery<Note> localNoteQuery = Note.getQuery();
+                    localNoteQuery.fromPin(HomeNoteApplication.NOTE_GROUP_NAME);
+                    localNoteQuery.whereEqualTo("authors", ParseUser.getCurrentUser());
+                    try {
+                        localNotes = localNoteQuery.find();
+                        if (localNotes != null && localNotes.size() > 0) {
+                            ArrayList<String> localNoteIds = new ArrayList<>();
+                            for (Note note : localNotes)
+                                localNoteIds.add(note.getUUIDString());
+                            ParseQuery<Note> query1 = Note.getQuery();
+                            query1.whereContainedIn(ParseObjectWithUUID.UUID_KEY, localNoteIds);
+                            ParseQuery<Note> query2 = Note.getQuery();
+                            query2.whereEqualTo("authors", ParseUser.getCurrentUser());
+                            ArrayList<ParseQuery<Note>> queries = new ArrayList<ParseQuery<Note>>();
+                            queries.add(query1);
+                            queries.add(query2);
+                            serverNoteQuery = ParseQuery.or(queries);
+                            serverNoteQuery = Note.getQueryForRender(serverNoteQuery);
+                        }
+                        List<Note> parseNotes = serverNoteQuery.find();
+                        if (localNotes != null && localNotes.size() > 0) {
+                            localNotes.removeAll(parseNotes);
+                            if (localNotes.size() > 0) {
+                                Note.unpinAll(HomeNoteApplication.NOTE_GROUP_NAME, localNotes);
+                            }
+                        }
+                        Note.pinAll(HomeNoteApplication.NOTE_GROUP_NAME, parseNotes);
+                    } catch (ParseException e) {
+                        result.succeeded = false;
+                        result.exception = new Exception("Error loading notes from the cloud");
+                    }
+                } else {
+                    result.succeeded = false;
+                    result.exception = new Exception("No internet connection found");
+                    return result;
+                }
+            }
+            result.succeeded = true;
+            return result;
+        }
+
+        @Override
+        protected void onPostExecute(NoteAsyncTaskResult noteAsyncTaskResult) {
+            stopSyncAnimation();
+            if (noteAsyncTaskResult.succeeded) {
+                if (!isFinishing()) {
+                    noteListAdapter.loadObjects();
+                }
+            } else {
+                String message = noteAsyncTaskResult.exception.getMessage();
+                Log.i("NoteListActivity", message);
+                Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
+            }
+        }
+    }
 }
