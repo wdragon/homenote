@@ -1,6 +1,5 @@
 package com.parse.homenote;
 
-import com.parse.GetCallback;
 import com.parse.ParseClassName;
 import com.parse.ParseException;
 import com.parse.ParseObject;
@@ -21,6 +20,13 @@ public class UserPreference extends ParseObject {
     final static String LAST_OPENED_NOTE_KEY = "lastOpenedNote";
     final static String CLOSE_USERS_KEY = "closeUsers";
     final static int CLOSE_USERS_MAX_COUNT = 10;
+
+    public static UserPreference createNew() {
+        UserPreference pref = new UserPreference();
+        pref.setCreator(ParseUser.getCurrentUser());
+        pref.setDraft(true);
+        return pref;
+    }
 
     public ParseUser getCreator() { return getParseUser("creator"); }
 
@@ -90,9 +96,10 @@ public class UserPreference extends ParseObject {
     }
 
     public void syncToParseInBackground() {
+        // use isDraft is propriate?
         if (isDraft()) {
             setDraft(false);
-            saveInBackground(new SaveCallback() {
+            NoteUtils.saveParseObjInBackground(this, new SaveCallback() {
                 @Override
                 public void done(ParseException e) {
                     if (e != null) {

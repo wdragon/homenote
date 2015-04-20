@@ -24,20 +24,18 @@ public class UserPreferenceManager {
     }
 
     private static void createNewInstance() {
-        instance = new UserPreference();
-        instance.setCreator(ParseUser.getCurrentUser());
-        instance.pinInBackground(HomeNoteApplication.NOTE_GROUP_NAME);
-        instance.saveEventually();
+        instance = UserPreference.createNew();
+        instance.syncToParseInBackground();
     }
 
     private static void fetchInstance(boolean inBackGround) {
         //TODO: No data fetching for anonymous users?
         // check for objectid of parseuser
-        if (ParseAnonymousUtils.isLinked(ParseUser.getCurrentUser()))
-            return;
-
         if (instance == null) {
             ParseQuery<UserPreference> prefQuery = UserPreference.getQuery();
+            if (NoteUtils.isAnonymouseUser()) {
+                prefQuery.fromPin(HomeNoteApplication.NOTE_GROUP_NAME);
+            }
             prefQuery.include(UserPreference.LAST_OPENED_NOTE_KEY);
             prefQuery.include(UserPreference.BLOCKED_USERS_KEY);
             prefQuery.include(UserPreference.CLOSE_USERS_KEY);

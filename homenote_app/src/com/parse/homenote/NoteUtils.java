@@ -6,7 +6,9 @@ import android.text.format.DateUtils;
 
 import com.parse.ParseAnonymousUtils;
 import com.parse.ParseException;
+import com.parse.ParseObject;
 import com.parse.ParseUser;
+import com.parse.SaveCallback;
 
 import org.json.JSONObject;
 
@@ -133,11 +135,17 @@ public class NoteUtils {
         NoteSnippet.unpinAll(HomeNoteApplication.NOTE_GROUP_NAME, snippets);
     }
 
+    /**
+     * note is saved to server if toServer is true and current user is not an anonymous user
+     * @param note
+     * @param toServer
+     * @throws ParseException
+     */
     public static void saveNote(Note note, boolean toServer) throws ParseException {
         if (note == null) {
             return;
         }
-        if (toServer) {
+        if (toServer && !isAnonymouseUser()) {
             if (note.isDraft()) {
                 note.setDraft(false);
                 try {
@@ -151,11 +159,17 @@ public class NoteUtils {
         note.pin(HomeNoteApplication.NOTE_GROUP_NAME);
     }
 
+    /**
+     * snippets are saved to server if toServer is true and current user is not an anonymous user
+     * @param snippets
+     * @param toServer
+     * @throws ParseException
+     */
     public static void saveSnippets(ArrayList<NoteSnippet> snippets, boolean toServer) throws ParseException {
         if (snippets == null) {
             return;
         }
-        if (toServer) {
+        if (toServer && !isAnonymouseUser()) {
             ArrayList<NoteSnippet> draftSnippets = new ArrayList<>();
             for (NoteSnippet snippet : snippets) {
                 if (snippet.isDraft()) {
@@ -186,5 +200,13 @@ public class NoteUtils {
 
     public static boolean isAnonymouseUser() {
         return ParseAnonymousUtils.isLinked(ParseUser.getCurrentUser());
+    }
+
+    public static void saveParseObjInBackground(ParseObject obj, SaveCallback callback) {
+        if (!isAnonymouseUser()) {
+            obj.saveInBackground(callback);
+        } else {
+            obj.pinInBackground(HomeNoteApplication.NOTE_GROUP_NAME, callback);
+        }
     }
 }

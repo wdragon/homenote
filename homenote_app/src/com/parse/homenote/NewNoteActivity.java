@@ -9,21 +9,33 @@ import android.widget.Toast;
 import com.parse.*;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 public class NewNoteActivity extends Activity {
 
 	private Note note;
+    private boolean isNoteDirty = false;
     private ArrayList<NoteSnippet> tmpDirtySnippets;
     private ArrayList<NoteSnippet> tmpDeletedSnippets;
     private ArrayList<NoteSnippet> deletedSnippets;
 
     public void setNote(Note note_) {
-        note = note_;
+        if (note != note_) {
+            note = note_;
+            isNoteDirty = false;
+        }
     }
 
     public Note getNote() {
         return note;
+    }
+
+    public void markDirtyNote() {
+        if (note != null) {
+            note.setNoteUpdatedAt(Calendar.getInstance().getTime());
+            isNoteDirty = true;
+        }
     }
 
     public void addDirtySnippet(NoteSnippet snippet) {
@@ -96,7 +108,7 @@ public class NewNoteActivity extends Activity {
         if (tmpDeletedSnippets != null && tmpDeletedSnippets.size() > 0) {
             return true;
         }
-        if (note != null && note.isDraft()) {
+        if (note != null && isNoteDirty) {
             return true;
         }
         return false;
@@ -156,9 +168,10 @@ public class NewNoteActivity extends Activity {
             NoteUtils.saveSnippets(tmpDirtySnippets, toServer);
             tmpDirtySnippets.clear();
         }
-        if (note != null && note.isDraft()) {
+        if (note != null && (isNoteDirty || (note.isDraft() && toServer))) {
             NoteUtils.saveNote(note, toServer);
         }
+        isNoteDirty = false;
 
         if (isFinishing()) {
             return;

@@ -175,10 +175,10 @@ public class NewNoteFragment extends Fragment {
         } else {
             if (activity.getNote() == null) {
                 Note note = Note.createNew();
-                activity.setNote(note);
                 NoteSnippet snippet = note.createNewLastSnippet();
-                dirtySnippet(snippet);
                 note.setCursorPosition(snippet, 0, 0);
+                activity.setNote(note);
+                dirtySnippetAndNote(snippet);
                 activity.saveNote(false);
             }
             setupSnippetsView(activity.getNote(), v);
@@ -299,9 +299,9 @@ public class NewNoteFragment extends Fragment {
         return snippet;
     }
 
-    private void dirtySnippet(NoteSnippet snippet) {
-        snippet.setDraft(true);
+    private void dirtySnippetAndNote(NoteSnippet snippet) {
         getNoteActivity().addDirtySnippet(snippet);
+        getNoteActivity().markDirtyNote();
     }
 
     private void toggleCheckbox() {
@@ -329,7 +329,7 @@ public class NewNoteFragment extends Fragment {
                     snippet.insertContent(index+1, textForNewCheckBox, NoteSnippetContentType.CHECK_BOX_OFF.ordinal());
                     note.setCursorPosition(snippet, index+1, 0);
                 }
-                dirtySnippet(snippet);
+                dirtySnippetAndNote(snippet);
                 snippetListAdapter.notifyDataSetChanged();
                 return;
             }
@@ -348,7 +348,7 @@ public class NewNoteFragment extends Fragment {
         }
         note.setCursorPosition(snippet, index, 0);
         snippet.updateContent(index, "", NoteSnippetContentType.CHECK_BOX_OFF.ordinal());
-        dirtySnippet(snippet);
+        dirtySnippetAndNote(snippet);
         snippetListAdapter.notifyDataSetChanged();
     }
 
@@ -383,6 +383,7 @@ public class NewNoteFragment extends Fragment {
                 if (validReminder == null) {
                     validReminder = NoteReminder.createNew(timeInMillis, ParseUser.getCurrentUser(), snippet, getNote());
                     snippet.addReminder(validReminder);
+                    dirtySnippetAndNote(snippet);
                 } else {
                     validReminder.reschedule(timeInMillis);
                 }
@@ -398,7 +399,7 @@ public class NewNoteFragment extends Fragment {
             public void onTimeDeleted() {
                 if (reminder != null) {
                     snippet.removeReminder(reminder);
-                    dirtySnippet(snippet);
+                    dirtySnippetAndNote(snippet);
                     reminder.deleteEventually(new DeleteCallback() {
                         @Override
                         public void done(ParseException e) {
@@ -592,7 +593,8 @@ public class NewNoteFragment extends Fragment {
                         }
                     }
                 }
-                getNote().setACL(noteACL);
+                note.setACL(noteACL);
+                getNoteActivity().markDirtyNote();
 
                 ParseQuery<NoteShare> query = NoteShare.getQuery();
                 query.whereContainedIn("to", toRemoveUsers);
@@ -641,7 +643,7 @@ public class NewNoteFragment extends Fragment {
             }
             // Note and snippets share the same ACL
             note.setACL(noteACL);
-            note.setDraft(true);
+            getNoteActivity().markDirtyNote();
         }
     }
 
@@ -802,7 +804,7 @@ public class NewNoteFragment extends Fragment {
                         for (SnippetSubView subView : holder.subViews) {
                             if (subView != null && subView.edited == true) {
                                 if (holder.snippet.updateContent(subView.index, subView.getContent(), subView.type))
-                                    dirtySnippet(holder.snippet);
+                                    dirtySnippetAndNote(holder.snippet);
                                 subView.edited = false;
                             }
                         }
@@ -816,6 +818,7 @@ public class NewNoteFragment extends Fragment {
             if (lastSnippetVH != null && lastSnippetVH.activeSubView != -1) {
                 SnippetSubView subView = lastSnippetVH.subViews.get(lastSnippetVH.activeSubView);
                 if (subView instanceof SnippetSubViewWithText) {
+                    // Note that this does not update the note's `last update time`
                     getNote().setCursorPosition(lastSnippetVH.snippet, lastSnippetVH.activeSubView, ((SnippetSubViewWithText) subView).text.getSelectionStart());
                 }
             }
@@ -837,7 +840,7 @@ public class NewNoteFragment extends Fragment {
                             holder.snippet.updateExistingContent(preContentIdx, preContent.concat(curContent));
                         }
                         holder.snippet.deleteContent(subView.index);
-                        dirtySnippet(holder.snippet);
+                        dirtySnippetAndNote(holder.snippet);
                         notifyDataSetChanged();
                     }
                 } else {
@@ -856,6 +859,7 @@ public class NewNoteFragment extends Fragment {
                                         getNote().setCursorPosition(toFocusSnippet, toFocusSnippet.size() - 1, -1);
                                     }
                                     getNoteActivity().addDeletedSnippet(holder.snippet);
+                                    getNoteActivity().markDirtyNote();
                                     notifyDataSetChanged();
                                     break;
                                 }
@@ -1106,7 +1110,7 @@ public class NewNoteFragment extends Fragment {
                         if (hasFocus) {
                             NoteSnippet last = getNote().createNewLastSnippet();
                             getNote().setCursorPosition(last, 0, 0);
-                            dirtySnippet(last);
+                            dirtySnippetAndNote(last);
                             getNoteActivity().saveNote(false);
                             loadObjects();
                         }
@@ -1430,7 +1434,8 @@ public class NewNoteFragment extends Fragment {
                     if (holder != null) {
                         NoteSnippet snippet = holder.snippet;
                         if (snippet.removePhoto(holder.photo.getFile())) {
-                            getNoteActivity().addDirtySnippet(snippet);
+                            //TODO: delete photo file itself
+                            dirtySnippetAndNote(snippet);
                             getNoteActivity().saveNote(false);
                             snippetListAdapter.notifyDataSetChanged();
                             mode.finish();
