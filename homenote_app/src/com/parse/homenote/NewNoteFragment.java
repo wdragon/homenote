@@ -215,7 +215,7 @@ public class NewNoteFragment extends Fragment {
             snippetListAdapter.save();
             snippetListAdapter.saveCursorPosition();
 
-            if (activity.isNoteModified())
+            if (activity.isNoteModified() || item.getItemId() == R.id.action_save)
                 startSaving();
 
             boolean finishView = (item.getItemId() == android.R.id.home);
@@ -223,7 +223,7 @@ public class NewNoteFragment extends Fragment {
             if (finishView)
                 activity.clearLastOpenedNote();
 
-            if (activity.isNoteModified())
+            if (activity.isNoteModified() || item.getItemId() == R.id.action_save)
                 endSaving();
             return true;
         }
@@ -532,7 +532,7 @@ public class NewNoteFragment extends Fragment {
         AlertDialog.Builder alert = new AlertDialog.Builder(c);
         alert.setTitle("Reminder");
         String reminderCreator = NoteViewUtils.getDisplayName(reminder.getFrom()) + " added a reminder to this note:";
-        if (reminder.getFrom() == ParseUser.getCurrentUser()) {
+        if (NoteUtils.isSameUser(reminder.getFrom(), ParseUser.getCurrentUser())) {
             reminderCreator = "You added a reminder to this note:";
         }
         String reminderDesc = "\"" + reminder.getDescription(c) + "\"";
@@ -582,11 +582,11 @@ public class NewNoteFragment extends Fragment {
         ArrayList<ParseUser> authors = note.getAuthors();
         ParseUser creator = getNote().getCreator();
         if (!NoteUtils.isNull(authors) && !toRemoveUsers.isEmpty()) {
-            if (ParseUser.getCurrentUser() == creator) {
+            if (NoteUtils.isSameUser(ParseUser.getCurrentUser(), creator)) {
                 ParseACL noteACL = getNote().getACL();
                 for (ParseUser user : authors) {
-                    if (user != creator) {
-                        if (toRemoveUsers.contains(user)) {
+                    if (!NoteUtils.isSameUser(user, creator)) {
+                        if (NoteUtils.containUser(toRemoveUsers, user)) {
                             note.removeAuthor(user);
                             noteACL.setReadAccess(user, false);
                             noteACL.setWriteAccess(user, false);
@@ -621,7 +621,7 @@ public class NewNoteFragment extends Fragment {
         for (ParseUser toUser : toUsers) {
             boolean shared = false;
             for (NoteShare share : noteShares) {
-                if (share.getTo() == toUser) {
+                if (NoteUtils.isSameUser(share.getTo(), toUser)) {
                     shared = true;
                     break;
                 }
@@ -685,11 +685,17 @@ public class NewNoteFragment extends Fragment {
     }
 
     public void updateActions(Note note) {
+        ArrayList<Integer> blacklist = null;
+        if (NoteUtils.isAnonymouseUser()) {
+            blacklist = new ArrayList<>();
+            blacklist.add(R.id.action_share);
+        }
         if (menu != null && note != null) {
             boolean visible = NoteUtils.canViewerEdit(note);
             for (int i=0; i<menu.size(); i++) {
-                // have a blacklist?
-                menu.getItem(i).setVisible(visible);
+                MenuItem item = menu.getItem(i);
+                boolean blacklisted = (blacklist != null && blacklist.contains(item.getItemId()));
+                item.setVisible(visible && !blacklisted);
             }
         }
     }

@@ -55,7 +55,7 @@ public class Note extends ParseObjectWithUUID {
             authors = new ArrayList<>();
             put("authors", authors);
         }
-        if (!authors.contains(author)) {
+        if (!NoteUtils.containUser(authors, author)) {
             authors.add(author);
             setNoteUpdatedAt();
             return true;
@@ -68,10 +68,12 @@ public class Note extends ParseObjectWithUUID {
         if (authors == null) {
             return false;
         }
-        if (authors.contains(author)) {
-            authors.remove(author);
-            setNoteUpdatedAt();
-            return true;
+        for (ParseUser user : authors) {
+            if (NoteUtils.isSameUser(user, author)) {
+                authors.remove(user);
+                setNoteUpdatedAt();
+                return true;
+            }
         }
         return false;
     }

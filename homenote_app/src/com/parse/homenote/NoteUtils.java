@@ -15,6 +15,7 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 
 /**
  * Created by Yuntao Jia on 12/12/2014.
@@ -49,10 +50,17 @@ public class NoteUtils {
         ParseUser viewer = ParseUser.getCurrentUser();
         ParseUser creator = note.getCreator();
         ArrayList<ParseUser> authors = note.getAuthors();
-        int offset = authors.contains(creator) ? 1 : 0;
-        int creatorIndex = authors.indexOf(creator);
+        int offset = 0;
+        int creatorIndex = -1;
+        for (int i=0; i<authors.size(); i++) {
+            if (isSameUser(authors.get(i), creator)) {
+                creatorIndex = i;
+                offset = 1;
+                break;
+            }
+        }
         int index, index1;
-        if (viewer == creator) {
+        if (isSameUser(viewer, creator)) {
             switch (authors.size() - offset) {
                 case 0:
                     // Only Me
@@ -108,7 +116,7 @@ public class NoteUtils {
 
     public static boolean canViewerEdit(Note note) {
         ParseUser user = ParseUser.getCurrentUser();
-        if (user == note.getCreator() || note.getAuthors().contains(user)) {
+        if (isSameUser(user, note.getCreator()) || containUser(note.getAuthors(), user)) {
             return true;
         }
         return false;
@@ -200,6 +208,27 @@ public class NoteUtils {
 
     public static boolean isAnonymouseUser() {
         return ParseAnonymousUtils.isLinked(ParseUser.getCurrentUser());
+    }
+
+    public static boolean isSameUser(ParseUser user1, ParseUser user2) {
+        if (user1.getObjectId() == null) {
+            return user1 == user2;
+        } else {
+            return (user1.getObjectId().equals(user2.getObjectId()));
+        }
+    }
+
+    public static boolean containUser(List<ParseUser> users, ParseUser userToCheck) {
+        if (userToCheck.getObjectId() == null) {
+            return users.contains(userToCheck);
+        } else {
+            for (ParseUser user : users) {
+                if (isSameUser(userToCheck, user)) {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     public static void saveParseObjInBackground(ParseObject obj, SaveCallback callback) {

@@ -96,7 +96,7 @@ public class UserPreference extends ParseObject {
     }
 
     public void syncToParseInBackground() {
-        // use isDraft is propriate?
+        // use isDraft is appropriate?
         if (isDraft()) {
             setDraft(false);
             NoteUtils.saveParseObjInBackground(this, new SaveCallback() {
