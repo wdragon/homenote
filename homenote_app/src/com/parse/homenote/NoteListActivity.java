@@ -57,7 +57,7 @@ public class NoteListActivity extends Activity {
     private MenuItem refreshItem;
     private ImageView refreshActionView;
     private Animation clockwiseRefresh;
-    private boolean duringSyncAnimation = false;
+    private SyncNotesWithParseTask syncNotesWithParseTask = null;
 
     @Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -73,8 +73,8 @@ public class NoteListActivity extends Activity {
 	}
 
 	@Override
-	protected void onResume() {
-		super.onResume();
+	protected void onStart() {
+		super.onStart();
 		// Check if we have a real user
 		if (!NoteUtils.isAnonymouseUser()) {
 			// Sync data to Parse
@@ -101,7 +101,7 @@ public class NoteListActivity extends Activity {
         ParseQueryAdapter.QueryFactory<Note> factory = new ParseQueryAdapter.QueryFactory<Note>() {
             public ParseQuery<Note> create() {
                 ParseQuery<Note> queryLocal = Note.getQueryForRender();
-                //queryLocal.whereEqualTo("authors", ParseUser.getCurrentUser());
+                queryLocal.whereEqualTo("authors", NoteUtils.createUserWithSameId(ParseUser.getCurrentUser()));
                 queryLocal.orderByDescending(Note.UPDATED_TIME);
                 queryLocal.fromLocalDatastore();
                 return queryLocal;
@@ -171,9 +171,9 @@ public class NoteListActivity extends Activity {
 				// Coming back from the edit view, update the view
 				noteListAdapter.loadObjects();
 			} else if (requestCode == LOGIN_ACTIVITY_CODE) {
-                // Rename owners of the local contents
 			    syncWithParse(false);
-			}
+                updateLoggedInInfo();
+            }
 		}
 	}
 
@@ -182,7 +182,7 @@ public class NoteListActivity extends Activity {
 		getMenuInflater().inflate(R.menu.note_list, menu);
 
         refreshItem = menu.findItem(R.id.action_sync);
-        if (duringSyncAnimation) {
+        if (syncNotesWithParseTask != null) {
             startSyncAnimation();
         }
 
@@ -231,7 +231,6 @@ public class NoteListActivity extends Activity {
 	}
 
     private void stopSyncAnimation() {
-        duringSyncAnimation = false;
         if (refreshItem != null && refreshItem.getActionView() != null) {
             refreshItem.getActionView().clearAnimation();
             refreshItem.setActionView(null);
@@ -267,10 +266,10 @@ public class NoteListActivity extends Activity {
     }
 
     private void syncWithParse(boolean allowLogin) {
-        if (!NoteUtils.isAnonymouseUser()) {
+        if (!NoteUtils.isAnonymouseUser() && syncNotesWithParseTask == null) {
             startSyncAnimation();
-            SyncNotesWithParseTask task = new SyncNotesWithParseTask();
-            task.execute();
+            syncNotesWithParseTask = new SyncNotesWithParseTask();
+            syncNotesWithParseTask.execute();
         } else if (allowLogin) {
             ParseLoginBuilder builder = new ParseLoginBuilder(this);
             startActivityForResult(builder.build(), LOGIN_ACTIVITY_CODE);
@@ -455,12 +454,12 @@ public class NoteListActivity extends Activity {
     private class SyncNotesWithParseTask extends AsyncTask<Void, Void, NoteAsyncTaskResult> {
         @Override
         protected NoteAsyncTaskResult doInBackground(Void... params) {
-            duringSyncAnimation = true;
             NoteAsyncTaskResult result = new NoteAsyncTaskResult();
             if (!NoteUtils.isAnonymouseUser()) {
                 ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
                 NetworkInfo ni = cm.getActiveNetworkInfo();
                 if ((ni != null) && (ni.isConnected())) {
+                    ParseUser dupViewer = NoteUtils.createUserWithSameId(ParseUser.getCurrentUser());
                     // If we have a network connection and a current logged in user,
                     // sync the notes
                     // In this app, local changes should overwrite content on the
@@ -468,7 +467,7 @@ public class NoteListActivity extends Activity {
                     ParseQuery<Note> noteQuery = Note.getQuery();
                     noteQuery.fromPin(HomeNoteApplication.NOTE_GROUP_NAME);
                     noteQuery.whereEqualTo("isDraft", true);
-                    noteQuery.whereEqualTo("authors", ParseUser.getCurrentUser());
+                    noteQuery.whereEqualTo("authors", dupViewer);
                     List<Note> draftNotes = null;
                     try {
                         draftNotes = noteQuery.find();
@@ -510,12 +509,12 @@ public class NoteListActivity extends Activity {
                     }
 
                     ParseQuery<Note> serverNoteQuery = Note.getQueryForRender();
-                    serverNoteQuery.whereEqualTo("authors", ParseUser.getCurrentUser());
+                    serverNoteQuery.whereEqualTo("authors", dupViewer);
                     // Include all local notes so that we could clean them up
                     List<Note> localNotes = null;
                     ParseQuery<Note> localNoteQuery = Note.getQuery();
                     localNoteQuery.fromPin(HomeNoteApplication.NOTE_GROUP_NAME);
-                    localNoteQuery.whereEqualTo("authors", ParseUser.getCurrentUser());
+                    localNoteQuery.whereEqualTo("authors", dupViewer);
                     try {
                         localNotes = localNoteQuery.find();
                         if (localNotes != null && localNotes.size() > 0) {
@@ -525,7 +524,7 @@ public class NoteListActivity extends Activity {
                             ParseQuery<Note> query1 = Note.getQuery();
                             query1.whereContainedIn(ParseObjectWithUUID.UUID_KEY, localNoteIds);
                             ParseQuery<Note> query2 = Note.getQuery();
-                            query2.whereEqualTo("authors", ParseUser.getCurrentUser());
+                            query2.whereEqualTo("authors", dupViewer);
                             ArrayList<ParseQuery<Note>> queries = new ArrayList<ParseQuery<Note>>();
                             queries.add(query1);
                             queries.add(query2);
@@ -556,6 +555,7 @@ public class NoteListActivity extends Activity {
 
         @Override
         protected void onPostExecute(NoteAsyncTaskResult noteAsyncTaskResult) {
+            syncNotesWithParseTask = null;
             stopSyncAnimation();
             if (noteAsyncTaskResult.succeeded) {
                 if (!isFinishing()) {
@@ -566,6 +566,11 @@ public class NoteListActivity extends Activity {
                 Log.i("NoteListActivity", message);
                 Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
             }
+        }
+
+        @Override
+        protected void onCancelled() {
+            syncNotesWithParseTask = null;
         }
     }
 }

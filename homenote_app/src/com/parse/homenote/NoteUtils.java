@@ -231,6 +231,10 @@ public class NoteUtils {
         }
     }
 
+    public static ParseUser createUserWithSameId(ParseUser user) {
+        return ParseUser.createWithoutData(ParseUser.class, user.getObjectId());
+    }
+
     public static void saveParseObjInBackground(ParseObject obj, SaveCallback callback) {
         if (!isAnonymouseUser()) {
             obj.saveInBackground(callback);
