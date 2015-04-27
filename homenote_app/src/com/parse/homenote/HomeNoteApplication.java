@@ -26,24 +26,23 @@ public class HomeNoteApplication extends Application {
 		Parse.enableLocalDatastore(getApplicationContext());
 		Parse.initialize(this, APP_ID, CLIENT_KEY);
 		ParseUser.enableAutomaticUser();
-        ParseUser.getCurrentUser().saveInBackground();
+        ParseUser.getCurrentUser().saveInBackground(new SaveCallback() {
+            @Override
+            public void done(ParseException e) {
+                if (e == null) {
+                    initAfterUserSynced();
+                } else {
+                    //TODO: log it to the server
+                }
+            }
+        });
         ParseACL defaultACL = new ParseACL();
 		ParseACL.setDefaultACL(defaultACL, true);
 
         initInBackground();
-
 	}
 
     private void initInBackground() {
-        UserPreferenceManager.fetchInstanceInBackground();
-
-        // Associate the device with a user
-        ParseInstallation installation = ParseInstallation.getCurrentInstallation();
-        if (installation.get("user") != ParseUser.getCurrentUser()) {
-            installation.put("user", ParseUser.getCurrentUser());
-            installation.saveInBackground();
-        }
-
         ParsePush.subscribeInBackground("homenotes", new SaveCallback() {
             @Override
             public void done(ParseException e) {
@@ -54,5 +53,16 @@ public class HomeNoteApplication extends Application {
                 }
             }
         });
+    }
+
+    private void initAfterUserSynced() {
+        UserPreferenceManager.fetchInstanceInBackground();
+
+        // Associate the device with a user
+        ParseInstallation installation = ParseInstallation.getCurrentInstallation();
+        if (installation.get("user") != ParseUser.getCurrentUser()) {
+            installation.put("user", ParseUser.getCurrentUser());
+            installation.saveInBackground();
+        }
     }
 }

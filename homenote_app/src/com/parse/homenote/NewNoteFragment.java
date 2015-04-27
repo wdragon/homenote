@@ -174,12 +174,19 @@ public class NewNoteFragment extends Fragment {
             }
         } else {
             if (activity.getNote() == null) {
-                Note note = Note.createNew();
-                NoteSnippet snippet = note.createNewLastSnippet();
-                note.setCursorPosition(snippet, 0, 0);
-                activity.setNote(note);
-                dirtySnippetAndNote(snippet);
-                activity.saveNote(false);
+                try {
+                    NoteUtils.saveUserToServerIfNeeded();
+                    Note note = Note.createNew();
+                    NoteSnippet snippet = note.createNewLastSnippet();
+                    note.setCursorPosition(snippet, 0, 0);
+                    activity.setNote(note);
+                    dirtySnippetAndNote(snippet);
+                    activity.saveNote(false);
+                } catch (Exception e) {
+                    Toast.makeText(activity,
+                            "Error creating a note: " + e.getMessage(),
+                            Toast.LENGTH_LONG).show();
+                }
             }
             setupSnippetsView(activity.getNote(), v);
         }
@@ -648,6 +655,9 @@ public class NewNoteFragment extends Fragment {
     }
 
     protected void setupSnippetsView(final Note note, final View v) {
+        if (note == null)
+            return;
+
         final NewNoteActivity activity = getNoteActivity();
         ParseQueryAdapter.QueryFactory<NoteSnippet> factory = new ParseQueryAdapter.QueryFactory<NoteSnippet>() {
             public ParseQuery<NoteSnippet> create() {

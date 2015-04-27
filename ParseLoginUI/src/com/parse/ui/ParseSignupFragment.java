@@ -32,6 +32,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 
+import com.parse.LogInCallback;
 import com.parse.ParseException;
 import com.parse.ParseUser;
 import com.parse.SignUpCallback;
@@ -136,8 +137,8 @@ public class ParseSignupFragment extends ParseLoginFragmentBase implements OnCli
 
   @Override
   public void onClick(View v) {
-    String username = usernameField.getText().toString();
-    String password = passwordField.getText().toString();
+    final String username = usernameField.getText().toString();
+    final String password = passwordField.getText().toString();
     String passwordAgain = confirmPasswordField.getText().toString();
 
     String email = null;
@@ -194,7 +195,7 @@ public class ParseSignupFragment extends ParseLoginFragmentBase implements OnCli
 
           if (e == null) {
             loadingFinish();
-            signupSuccess();
+            tryLogin(username, password);
           } else {
             loadingFinish();
             if (e != null) {
@@ -227,5 +228,37 @@ public class ParseSignupFragment extends ParseLoginFragmentBase implements OnCli
 
   private void signupSuccess() {
     onLoginSuccessListener.onLoginSuccess();
+  }
+
+  private void tryLogin(String username, String password) {
+      ParseUser.logInInBackground(username, password, new LogInCallback() {
+          @Override
+          public void done(ParseUser user, ParseException e) {
+              if (isActivityDestroyed()) {
+                  return;
+              }
+
+              if (user != null) {
+                  loadingFinish();
+                  signupSuccess();
+              } else {
+                  loadingFinish();
+                  if (e != null) {
+                      debugLog(getString(R.string.com_parse_ui_login_warning_parse_login_failed) +
+                              e.toString());
+                      if (e.getCode() == ParseException.OBJECT_NOT_FOUND) {
+                          if (config.getParseLoginInvalidCredentialsToastText() != null) {
+                              showToast(config.getParseLoginInvalidCredentialsToastText());
+                          } else {
+                              showToast(R.string.com_parse_ui_parse_login_invalid_credentials_toast);
+                          }
+                      } else {
+                          showToast(R.string.com_parse_ui_parse_login_failed_unknown_toast);
+                      }
+                  }
+                  signupSuccess();
+              }
+          }
+      });
   }
 }

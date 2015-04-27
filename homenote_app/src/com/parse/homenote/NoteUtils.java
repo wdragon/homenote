@@ -242,4 +242,14 @@ public class NoteUtils {
             obj.pinInBackground(HomeNoteApplication.NOTE_GROUP_NAME, callback);
         }
     }
+
+    public static void saveUserToServerIfNeeded() throws ParseException {
+        if (ParseUser.getCurrentUser().getObjectId() == null) {
+            ParseUser.getCurrentUser().save();
+        }
+    }
+
+    public static boolean isValidUser() {
+        return ParseUser.getCurrentUser().getObjectId() != null;
+    }
 }

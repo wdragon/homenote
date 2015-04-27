@@ -24,13 +24,19 @@ public class UserPreferenceManager {
     }
 
     private static void createNewInstance() {
+        if (!NoteUtils.isValidUser()) {
+            return;
+        }
         instance = UserPreference.createNew();
         instance.syncToParseInBackground();
     }
 
     private static void fetchInstance(boolean inBackGround) {
-        //TODO: No data fetching for anonymous users?
         // check for objectid of parseuser
+        if (!NoteUtils.isValidUser()) {
+            return;
+        }
+
         if (instance == null) {
             ParseQuery<UserPreference> prefQuery = UserPreference.getQuery();
             if (NoteUtils.isAnonymouseUser()) {
