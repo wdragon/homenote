@@ -244,9 +244,9 @@ public class NoteUtils {
     }
 
     public static void saveUserToServerIfNeeded() throws ParseException {
-        if (ParseUser.getCurrentUser().getObjectId() == null) {
-            ParseUser.getCurrentUser().save();
-        }
+      if (ParseUser.getCurrentUser().getObjectId() == null) {
+        ParseUser.getCurrentUser().save();
+      }
     }
 
     public static boolean isValidUser() {

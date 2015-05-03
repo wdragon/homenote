@@ -9,7 +9,7 @@
     android:orientation="vertical">
 
     <include
-        layout="@layout/com_parse_ui_parse_signup_form"
+        layout="@layout/com_parse_ui_parse_aftersignup_form"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
 

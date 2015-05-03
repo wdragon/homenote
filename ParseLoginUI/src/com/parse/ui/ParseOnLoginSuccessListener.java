@@ -23,4 +23,6 @@ package com.parse.ui;
 
 public interface ParseOnLoginSuccessListener {
   public void onLoginSuccess();
+  public void afterSignup();
+
 }

@@ -42,6 +42,7 @@ import com.parse.ParseFacebookUtils;
 import com.parse.ParseTwitterUtils;
 import com.parse.ParseUser;
 import com.parse.SaveCallback;
+import com.parse.SignUpCallback;
 import com.parse.twitter.Twitter;
 
 /**
@@ -50,15 +51,14 @@ import com.parse.twitter.Twitter;
 public class ParseLoginFragment extends ParseLoginFragmentBase {
 
   public interface ParseLoginFragmentListener {
-    public void onSignUpClicked(String username, String password);
-
     public void onLoginHelpClicked();
-
     public void onLoginSuccess();
   }
 
   private static final String LOG_TAG = "ParseLoginFragment";
   private static final String USER_OBJECT_NAME_FIELD = "name";
+
+  private static final int DEFAULT_MIN_PASSWORD_LENGTH = 6;
 
   private View parseLogin;
   private EditText usernameField;
@@ -72,6 +72,9 @@ public class ParseLoginFragment extends ParseLoginFragmentBase {
   private ParseOnLoginSuccessListener onLoginSuccessListener;
 
   private ParseLoginConfig config;
+
+  private int minPasswordLength;
+
 
   public static ParseLoginFragment newInstance(Bundle configOptions) {
     ParseLoginFragment loginFragment = new ParseLoginFragment();
@@ -100,6 +103,11 @@ public class ParseLoginFragment extends ParseLoginFragmentBase {
     parseSignupButton = (Button) v.findViewById(R.id.parse_signup_button);
     facebookLoginButton = (Button) v.findViewById(R.id.facebook_login);
     twitterLoginButton = (Button) v.findViewById(R.id.twitter_login);
+
+    minPasswordLength = DEFAULT_MIN_PASSWORD_LENGTH;
+    if (config.getParseSignupMinPasswordLength() != null) {
+      minPasswordLength = config.getParseSignupMinPasswordLength();
+    }
 
     if (appLogo != null && config.getAppLogo() != null) {
       appLogo.setImageResource(config.getAppLogo());
@@ -171,36 +179,7 @@ public class ParseLoginFragment extends ParseLoginFragmentBase {
           showToast(R.string.com_parse_ui_no_password_toast);
         } else {
           loadingStart(true);
-          ParseUser.logInInBackground(username, password, new LogInCallback() {
-            @Override
-            public void done(ParseUser user, ParseException e) {
-              if (isActivityDestroyed()) {
-                return;
-              }
-
-              if (user != null) {
-                loadingFinish();
-                loginSuccess();
-              } else {
-                loadingFinish();
-                if (e != null) {
-                  debugLog(getString(R.string.com_parse_ui_login_warning_parse_login_failed) +
-                      e.toString());
-                  if (e.getCode() == ParseException.OBJECT_NOT_FOUND) {
-                    if (config.getParseLoginInvalidCredentialsToastText() != null) {
-                      showToast(config.getParseLoginInvalidCredentialsToastText());
-                    } else {
-                      showToast(R.string.com_parse_ui_parse_login_invalid_credentials_toast);
-                    }
-                    passwordField.selectAll();
-                    passwordField.requestFocus();
-                  } else {
-                    showToast(R.string.com_parse_ui_parse_login_failed_unknown_toast);
-                  }
-                }
-              }
-            }
-          });
+          tryLogin(username, password, false);
         }
       }
     });
@@ -212,10 +191,76 @@ public class ParseLoginFragment extends ParseLoginFragmentBase {
     parseSignupButton.setOnClickListener(new OnClickListener() {
       @Override
       public void onClick(View v) {
-        String username = usernameField.getText().toString();
-        String password = passwordField.getText().toString();
+        final String username = usernameField.getText().toString();
+        final String password = passwordField.getText().toString();
 
-        loginFragmentListener.onSignUpClicked(username, password);
+        String email = username;
+        String phone = null;
+        if (!config.isParseLoginEmailAsUsername()) {
+          phone = email;
+        }
+
+        if (username.length() == 0) {
+            showToast(R.string.com_parse_ui_no_username_toast);
+        } else if (!isValidEmail(email) && !isValidPhoneNumber(phone)) {
+          if (config.isParseLoginEmailAsUsername())
+            showToast(R.string.com_parse_ui_invalid_email_toast);
+          else
+            showToast(R.string.com_parse_ui_invalid_email_or_phone_toast);
+        } else if (password.length() == 0) {
+          showToast(R.string.com_parse_ui_no_password_toast);
+        } else if (password.length() < minPasswordLength) {
+          showToast(getResources().getQuantityString(
+              R.plurals.com_parse_ui_password_too_short_toast,
+              minPasswordLength, minPasswordLength));
+        } else {
+          ParseUser user = new ParseUser();
+
+          // Set standard fields
+          user.setUsername(username);
+          user.setPassword(password);
+          if (isValidEmail(email))
+            user.setEmail(email);
+          if (isValidPhoneNumber(phone))
+            user.put(USER_OBJECT_PHONE_FIELD, phone);
+
+          loadingStart();
+          user.signUpInBackground(new SignUpCallback() {
+            @Override
+            public void done(ParseException e) {
+              if (isActivityDestroyed()) {
+                  return;
+              }
+
+              if (e == null) {
+                  loadingFinish();
+                  showToast(R.string.com_parse_ui_signup_successful);
+                  tryLogin(username, password, true);
+              } else {
+                loadingFinish();
+                if (e != null) {
+                    debugLog(getString(R.string.com_parse_ui_login_warning_parse_signup_failed) +
+                            e.toString());
+                    switch (e.getCode()) {
+                        case ParseException.INVALID_EMAIL_ADDRESS:
+                            showToast(R.string.com_parse_ui_invalid_email_toast);
+                            break;
+                        case ParseException.USERNAME_TAKEN:
+                            showToast(R.string.com_parse_ui_username_taken_toast);
+                            break;
+                        case ParseException.EMAIL_TAKEN:
+                            showToast(R.string.com_parse_ui_email_taken_toast);
+                            break;
+                        default:
+                            showToast(R.string.com_parse_ui_signup_failed_unknown_toast);
+                    }
+                }
+                usernameField.selectAll();
+                usernameField.requestFocus();
+              }
+            }
+          });
+        }
       }
     });
 
@@ -411,7 +456,48 @@ public class ParseLoginFragment extends ParseLoginFragmentBase {
   }
 
   private void loginSuccess() {
-    onLoginSuccessListener.onLoginSuccess();
+    loginSuccess(false);
   }
 
+  private void loginSuccess(boolean afterSignup) {
+    if (afterSignup) {
+      onLoginSuccessListener.afterSignup();
+    } else {
+      onLoginSuccessListener.onLoginSuccess();
+    }
+  }
+
+  private void tryLogin(String username, String password, final boolean afterSignup) {
+    ParseUser.logInInBackground(username, password, new LogInCallback() {
+      @Override
+      public void done(ParseUser user, ParseException e) {
+        if (isActivityDestroyed()) {
+          return;
+        }
+
+        if (user != null) {
+          loadingFinish();
+          showToast(R.string.com_parse_ui_login_successful);
+          loginSuccess(afterSignup);
+        } else {
+          loadingFinish();
+          if (e != null) {
+            debugLog(getString(R.string.com_parse_ui_login_warning_parse_login_failed) +
+                e.toString());
+            if (e.getCode() == ParseException.OBJECT_NOT_FOUND) {
+              if (config.getParseLoginInvalidCredentialsToastText() != null) {
+                showToast(config.getParseLoginInvalidCredentialsToastText());
+              } else {
+                showToast(R.string.com_parse_ui_parse_login_invalid_credentials_toast);
+              }
+              passwordField.selectAll();
+              passwordField.requestFocus();
+            } else {
+              showToast(R.string.com_parse_ui_parse_login_failed_unknown_toast);
+            }
+          }
+        }
+      }
+    });
+  }
 }

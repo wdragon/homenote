@@ -2,11 +2,13 @@
 
     <string name="com_parse_ui_logo_content_description">Logo</string>
     <string name="com_parse_ui_progress_dialog_text">Loading...</string>
-    <string name="com_parse_ui_username_input_hint">Username</string>
+    <string name="com_parse_ui_username_input_hint">Email or Phone</string>
     <string name="com_parse_ui_password_input_hint">Password</string>
     <string name="com_parse_ui_forgot_password_button_label"><u>Forgot password</u></string>
     <string name="com_parse_ui_parse_login_button_label">Log in</string>
     <string name="com_parse_ui_parse_signup_button_label">Sign up</string>
+    <string name="com_parse_ui_parse_save_label">Save</string>
+    <string name="com_parse_ui_parse_skip_label">Skip</string>
     <string name="com_parse_ui_facebook_login_button_label">Log in with Facebook</string>
     <string name="com_parse_ui_twitter_login_button_label">Log in with Twitter</string>
     <string name="com_parse_ui_email_input_hint">Email</string>
@@ -32,7 +34,9 @@
     <string name="com_parse_ui_invalid_email_toast">Email is invalid, please correct it and try again</string>
     <string name="com_parse_ui_email_taken_toast">Email is already taken, please reset your password instead</string>
     <string name="com_parse_ui_no_name_toast">Please enter your name</string>
+    <string name="com_parse_ui_invalid_email_or_phone_toast">Email or phone number is invalid, please correct it and try again</string>
     <string name="com_parse_ui_signup_failed_unknown_toast">Could not sign up, please try again later</string>
+    <string name="com_parse_ui_save_account_failed_unknown_toast">Could not update account, please try again later</string>
     <string name="com_parse_ui_login_help_instructions">Enter your email to recover your password</string>
     <string name="com_parse_ui_login_help_email_input_hint">Email</string>
     <string name="com_parse_ui_login_help_submit_button_label">Submit</string>
@@ -54,8 +58,13 @@
     <string name="com_parse_ui_login_warning_facebook_login_user_update_failed">"Updating user object after Facebook login failed, exception: "</string>
     <string name="com_parse_ui_login_warning_twitter_login_user_update_failed">"Updating user object after Twitter login failed, exception: "</string>
     <string name="com_parse_ui_login_warning_parse_signup_failed">"Parse signup failed, exception: "</string>
+    <string name="com_parse_ui_login_warning_parse_save_account_failed">"Parse save account failed, exception: "</string>
     <string name="com_parse_ui_login_warning_password_reset_failed">"Parse password reset failed, exception: "</string>
 
     <string name="com_parse_ui_login_dispatch_user_logged_in">"User logged in, starting: "</string>
     <string name="com_parse_ui_login_dispatch_user_not_logged_in">User not logged in, starting ParseLoginActivity</string>
+
+    <string name="com_parse_ui_login_successful">Login successful</string>
+    <string name="com_parse_ui_signup_successful">Signup successful</string>
+    <string name="com_parse_ui_acount_updated">Account updated</string>
 </resources>

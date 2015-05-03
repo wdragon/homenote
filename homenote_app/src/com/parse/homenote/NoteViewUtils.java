@@ -46,10 +46,24 @@ public class NoteViewUtils {
         String name = user.getString("name");
         if (name != null) {
             return name;
-        } else {
-            String username = user.getUsername();
+        }
+
+        String username = user.getUsername();
+        if (username != null) {
             return username;
         }
+
+        String email = user.getEmail();
+        if (email != null) {
+          return email;
+        }
+
+        String phoneNumber = user.getString("phoneNumber");
+        if (phoneNumber != null) {
+          return phoneNumber;
+        }
+
+        return null;
     }
 
     public static int getTextLineCount(String text, int width, TextPaint paint) {

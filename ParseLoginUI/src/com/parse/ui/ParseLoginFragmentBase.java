@@ -24,6 +24,7 @@ package com.parse.ui;
 import android.annotation.TargetApi;
 import android.os.Build;
 import android.support.v4.app.Fragment;
+import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -33,6 +34,9 @@ import com.parse.Parse;
  * Base class with helper methods for fragments in ParseLoginUI.
  */
 public class ParseLoginFragmentBase extends Fragment {
+  public static final String USER_OBJECT_NAME_FIELD = "name";
+  public static final String USER_OBJECT_PHONE_FIELD = "phoneNumber";
+
   protected ParseOnLoadingListener onLoadingListener;
 
   protected String getLogTag() {
@@ -80,6 +84,22 @@ public class ParseLoginFragmentBase extends Fragment {
       return getActivity().isDestroyed();
     } else {
       return ((ParseLoginActivity) getActivity()).isDestroyed();
+    }
+  }
+
+    public static final boolean isValidEmail(CharSequence email) {
+    if (email == null || TextUtils.isEmpty(email)) {
+      return false;
+    } else {
+      return android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches();
+    }
+  }
+
+  public static final boolean isValidPhoneNumber(CharSequence phone) {
+    if (phone == null || TextUtils.isEmpty(phone)) {
+      return false;
+    } else {
+      return android.util.Patterns.PHONE.matcher(phone).matches();
     }
   }
 }

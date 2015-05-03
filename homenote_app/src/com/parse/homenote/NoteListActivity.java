@@ -78,7 +78,7 @@ public class NoteListActivity extends Activity {
 		// Check if we have a real user
 		if (!NoteUtils.isAnonymouseUser()) {
 			// Sync data to Parse
-            syncWithParse();
+			syncWithParse();
 			// Update the logged in label info
 			updateLoggedInInfo();
 		}
@@ -148,8 +148,9 @@ public class NoteListActivity extends Activity {
 	private void updateLoggedInInfo() {
 		if (!NoteUtils.isAnonymouseUser()) {
 			ParseUser currentUser = ParseUser.getCurrentUser();
+
 			loggedInInfoView.setText(getString(R.string.logged_in,
-					currentUser.getString("name")));
+					NoteViewUtils.getDisplayName(currentUser)));
 		} else {
 			loggedInInfoView.setText(getString(R.string.not_logged_in));
 		}
@@ -163,18 +164,18 @@ public class NoteListActivity extends Activity {
 
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-		super.onActivityResult(requestCode, resultCode, data);
-		// An OK result means the pinned dataset changed or
-		// log in was successful
-		if (resultCode == RESULT_OK) {
-			if (requestCode == EDIT_ACTIVITY_CODE) {
-				// Coming back from the edit view, update the view
-				noteListAdapter.loadObjects();
-			} else if (requestCode == LOGIN_ACTIVITY_CODE) {
-			    syncWithParse(false);
-                updateLoggedInInfo();
-            }
-		}
+    super.onActivityResult(requestCode, resultCode, data);
+    // An OK result means the pinned dataset changed or
+    // log in was successful
+    if (resultCode == RESULT_OK) {
+      if (requestCode == EDIT_ACTIVITY_CODE) {
+        // Coming back from the edit view, update the view
+        noteListAdapter.loadObjects();
+      } else if (requestCode == LOGIN_ACTIVITY_CODE) {
+        syncWithParse(false);
+        updateLoggedInInfo();
+      }
+    }
 	}
 
 	@Override
