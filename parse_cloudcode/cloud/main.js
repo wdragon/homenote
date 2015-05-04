@@ -33,6 +33,7 @@ Parse.Cloud.job("reminders", function(request, status) {
       if (fromUser.id == toUser.id) {
           pushMessage = "You have a reminder.";
       } else {
+          // better way to get fromname
           var fromName = fromUser.get("name") ? fromUser.get("name") : fromUser.getUsername();
           pushMessage = fromName + " send you a reminder.";
       }

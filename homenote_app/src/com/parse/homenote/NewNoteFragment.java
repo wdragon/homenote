@@ -196,7 +196,13 @@ public class NewNoteFragment extends Fragment {
         return v;
     }
 
-    @Override
+  @Override
+  public void onPause() {
+    super.onPause();
+    startAutoSave();
+  }
+
+  @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater1) {
         inflater1.inflate(R.menu.individual_note, menu);
         this.menu = menu;
@@ -266,15 +272,17 @@ public class NewNoteFragment extends Fragment {
     }
 
     private void startSaving() {
-        Toast.makeText(getActivity(),
+       Toast.makeText(getActivity(),
                 "Saving...",
                 Toast.LENGTH_SHORT).show();
+      showHeaderProgressBar(R.string.auto_save_spinner);
     }
 
     private void endSaving() {
-        Toast.makeText(getActivity(),
+      Toast.makeText(getActivity(),
                 "Note saved.",
                 Toast.LENGTH_SHORT).show();
+      hideHeaderProgressBar(R.string.auto_save_finished);
     }
 
     private void endDeleting() {
@@ -730,7 +738,7 @@ public class NewNoteFragment extends Fragment {
                 activity.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        showHeaderProgressBar(R.string.auto_save_spinner);
+                        startSaving();
                         new AutoSaveNoteTask().execute();
                     }
                 });
@@ -1355,9 +1363,9 @@ public class NewNoteFragment extends Fragment {
 
         protected void onPostExecute(NoteAsyncTaskResult result) {
             if (result.succeeded) {
-                hideHeaderProgressBar(R.string.auto_save_finished);
+              endSaving();
             } else {
-                hideHeaderProgressBar(R.string.auto_save_failed);
+              hideHeaderProgressBar(R.string.auto_save_failed);
             }
         }
     }

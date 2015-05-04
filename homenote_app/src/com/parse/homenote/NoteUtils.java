@@ -68,7 +68,7 @@ public class NoteUtils {
                 case 1:
                     // Yuntao
                     index = (creatorIndex == 0) ? 1 : 0;
-                    return authors.get(index).getUsername();
+                    return NoteViewUtils.getDisplayName(authors.get(index));
                 case 2:
                     // Yuntao and Jennifer
                     if (creatorIndex == 0) {
@@ -81,21 +81,21 @@ public class NoteUtils {
                         index = 0;
                         index1 = 1;
                     }
-                    return authors.get(index).getUsername() + " and " + authors.get(index1).getUsername();
+                    return NoteViewUtils.getDisplayName(authors.get(index)) + " and " + NoteViewUtils.getDisplayName(authors.get(index1));
                 default:
                     // Yuntao and 2+
                     index = (creatorIndex == 0) ? 1 : 0;
-                    return authors.get(index).getUsername() + " and " + Integer.toString(authors.size() - 1) + " +";
+                    return NoteViewUtils.getDisplayName(authors.get(index)) + " and " + Integer.toString(authors.size() - 1) + " +";
             }
         } else {
             switch (authors.size() - offset) {
                 case 0:
-                    return creator.getUsername();
+                    return NoteViewUtils.getDisplayName(creator);
                 case 1:
                     index = (creatorIndex == 0) ? 1 : 0;
-                    return creator.getUsername() + " and " + authors.get(index).getUsername();
+                    return NoteViewUtils.getDisplayName(creator) + " and " + NoteViewUtils.getDisplayName(authors.get(index));
                 default:
-                    return creator.getUsername() + " and " + Integer.toString(authors.size()) + " +";
+                    return NoteViewUtils.getDisplayName(creator) + " and " + Integer.toString(authors.size()) + " +";
             }
         }
     }
